@@ -318,7 +318,8 @@ class Controller:
         if not self.can_send_msg() or chat_id is None:
             self.present_info("Can't send msg in this chat")
             return
-        self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
+        if config.NOTIFY_TYPING:
+            self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
         chat = self.model.chats.chats[self.model.current_chat]
         if msg := self.view.status.get_input(prefix=f'(msg) {chat["title"]}: '):
             self.model.send_message(text=msg)
@@ -337,7 +338,8 @@ class Controller:
         with NamedTemporaryFile("r+", suffix=f"_{chat['title']}.txt") as f, suspend(
             self.view
         ) as s:
-            self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
+            if config.NOTIFY_TYPING:
+                self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
             s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
             with open(f.name) as f:
                 if msg := f.read().strip():

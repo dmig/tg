@@ -76,6 +76,8 @@ USERS_COLORS = tuple(range(2, 16))
 
 KEEP_MEDIA = 7
 
+NOTIFY_TYPING = True
+
 FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 
 DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")
