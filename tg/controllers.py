@@ -333,7 +333,8 @@ class Controller:
         if not self.can_send_msg() or chat_id is None:
             self.present_info("Can't send msg in this chat")
             return
-        with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
+        chat = self.model.chats.chats[self.model.current_chat]
+        with NamedTemporaryFile("r+", suffix=f"_{chat['title']}.txt") as f, suspend(
             self.view
         ) as s:
             self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
