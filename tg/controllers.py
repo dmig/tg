@@ -491,8 +491,11 @@ class Controller:
         log.info("Downloaded: file_id=%s", file_id)
 
     def can_send_msg(self) -> bool:
-        chat = self.model.chats.chats[self.model.current_chat]
-        return chat["permissions"]["can_send_messages"]
+        try:
+            chat = self.model.chats.chats[self.model.current_chat]
+            return chat["permissions"]["can_send_messages"]
+        except Exception as e:
+            return True
 
     def _open_msg(self, msg: MsgProxy, cmd: str = config.DEFAULT_OPEN) -> None:
         if msg.is_text:
