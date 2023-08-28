@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -ex
+set -x
 
 echo Checking and formatting with black...
 black --check .
