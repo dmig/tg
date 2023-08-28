@@ -279,8 +279,9 @@ class Controller:
         chat_id = self.model.current_chat_id
         if chat_id is None:
             return
+        chat = self.model.chats.chats[self.model.current_chat]
         reply_to_msg = self.model.current_msg_id
-        if msg := self.view.status.get_input():
+        if msg := self.view.status.get_input(prefix=f'(reply) {chat["title"]}: '):
             self.model.view_all_msgs()
             self.tg.reply_message(chat_id, reply_to_msg, msg)
             self.present_info("Message reply sent")
@@ -318,7 +319,8 @@ class Controller:
             self.present_info("Can't send msg in this chat")
             return
         self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
-        if msg := self.view.status.get_input():
+        chat = self.model.chats.chats[self.model.current_chat]
+        if msg := self.view.status.get_input(prefix=f'(msg) {chat["title"]}: '):
             self.model.send_message(text=msg)
             self.present_info("Message sent")
         else:
