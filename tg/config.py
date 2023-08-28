@@ -33,6 +33,7 @@ MAX_DOWNLOAD_SIZE = "10MB"
 
 # TODO: check platform
 NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title {title} -subtitle {subtitle} -message {msg} -appIcon {icon_path}"
+NOTIFY_TYPES = { 'private', 'group' }
 
 VIEW_TEXT_CMD = "less"
 FZF = "fzf"

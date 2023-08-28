@@ -12,7 +12,7 @@ from telegram.utils import AsyncResult
 from tg import config
 from tg.models import Model
 from tg.msg import MsgProxy
-from tg.tdlib import ChatAction, ChatType, Tdlib, get_chat_type
+from tg.tdlib import ChatAction, ChatType, Tdlib, get_chat_type, is_group
 from tg.utils import (
     get_duration,
     get_mime,
@@ -874,6 +874,12 @@ class Controller:
         # TODO: handle cases when all chats muted on global level
         if chat["notification_settings"]["mute_for"]:
             return
+
+        chat_type = get_chat_type(chat)
+        if chat_type:
+            if (is_group(chat_type) and 'group' not in config.NOTIFY_TYPES or
+                not is_group(chat_type) and 'private' not in config.NOTIFY_TYPES):
+                return
 
         # notify
         if self.model.is_me(msg["sender_id"].get("user_id")):
