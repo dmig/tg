@@ -21,6 +21,7 @@ from tg.utils import (
     is_no,
     is_yes,
     notify,
+    open_file,
     suspend,
 )
 from tg.views import View
@@ -493,25 +494,23 @@ class Controller:
         chat = self.model.chats.chats[self.model.current_chat]
         return chat["permissions"]["can_send_messages"]
 
-    def _open_msg(self, msg: MsgProxy, cmd: str = None) -> None:
+    def _open_msg(self, msg: MsgProxy, cmd: str = config.DEFAULT_OPEN) -> None:
         if msg.is_text:
             with NamedTemporaryFile("w", suffix=".txt") as f:
                 f.write(msg.text_content)
                 f.flush()
-                with suspend(self.view) as s:
-                    s.open_file(f.name, cmd)
+                open_file(f.name)
             return
 
-        path = msg.local_path
-        if not path:
-            self.present_info("File should be downloaded first")
-            return
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
             return
+        path = msg.local_path
+        if not path:
+            self.download_current_file()
+            return
         self.tg.open_message_content(chat_id, msg.msg_id)
-        with suspend(self.view) as s:
-            s.open_file(path, cmd)
+        open_file(path, cmd)
 
     @bind(msg_handler, ["!"])
     def open_msg_with_cmd(self) -> None:
@@ -520,15 +519,11 @@ class Controller:
         cmd = self.view.status.get_input()
         if not cmd:
             return
-        if "%s" not in cmd:
-            return self.present_error(
-                "command should contain <%s> which will be replaced by file path"
-            )
         return self._open_msg(msg, cmd)
 
     @bind(msg_handler, ["l", "^J"])
     def open_current_msg(self) -> None:
-        """Open msg or file with cmd in mailcap"""
+        """Open msg or file with default cmd"""
         msg = MsgProxy(self.model.current_msg)
         self._open_msg(msg)
 

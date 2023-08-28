@@ -2,7 +2,6 @@ import base64
 import curses
 import hashlib
 import logging
-import mailcap
 import math
 import mimetypes
 import os
@@ -17,7 +16,7 @@ from functools import lru_cache
 from logging.handlers import RotatingFileHandler
 from subprocess import CompletedProcess
 from types import TracebackType
-from typing import Any, Dict, Optional, Tuple, Type
+from typing import Any, Optional, Tuple, Type
 
 from tg import config
 
@@ -70,26 +69,6 @@ def get_mime(file_path: str) -> str:
     if mtype == "image/gif":
         return "animation"
     return mtype.split("/")[0]
-
-
-def get_mailcap() -> Dict:
-    if config.MAILCAP_FILE:
-        with open(config.MAILCAP_FILE) as f:
-            return mailcap.readmailcapfile(f)  # type: ignore
-    return mailcap.getcaps()
-
-
-def get_file_handler(file_path: str) -> str:
-    mtype, _ = mimetypes.guess_type(file_path)
-    if not mtype:
-        return config.DEFAULT_OPEN.format(file_path=shlex.quote(file_path))
-
-    caps = get_mailcap()
-    handler, view = mailcap.findmatch(caps, mtype, filename=shlex.quote(file_path))
-    if not handler:
-        return config.DEFAULT_OPEN.format(file_path=shlex.quote(file_path))
-    return handler
-
 
 def parse_size(size: str) -> int:
     if size[-2].isalpha():
@@ -185,7 +164,7 @@ def notify(
         subtitle=shlex.quote(subtitle.translate(safe_map)),
         msg=shlex.quote(msg.translate(safe_map)),
     )
-    subprocess.Popen(notify_cmd, shell=True)
+    subprocess.Popen(notify_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def string_len_dwc(string: str) -> int:
@@ -230,16 +209,6 @@ class suspend:
         if proc.returncode:
             input(f"Command <{cmd}> failed: press <enter> to continue")
 
-    def open_file(self, file_path: str, cmd: str = None) -> None:
-        if cmd:
-            cmd = cmd % shlex.quote(file_path)
-        else:
-            cmd = get_file_handler(file_path)
-
-        proc = self.call(cmd)
-        if proc.returncode:
-            input(f"Command <{cmd}> failed: press <enter> to continue")
-
     def __enter__(self) -> "suspend":
         for view in (self.view.chats, self.view.msgs, self.view.status):
             view._refresh = view.win.noutrefresh
@@ -265,6 +234,10 @@ class suspend:
         self.view.stdscr.keypad(True)
         curses.curs_set(0)
         curses.doupdate()
+
+
+def open_file(file_path: str, cmd: str = config.DEFAULT_OPEN) -> None:
+    subprocess.Popen([cmd, file_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def set_shorter_esc_delay(delay: int = 25) -> None:
@@ -317,4 +290,4 @@ def cleanup_cache() -> None:
         return
     files_path = os.path.join(config.FILES_DIR, "files")
     cmd = f"find {files_path} -type f -mtime +{config.KEEP_MEDIA} -delete"
-    subprocess.Popen(cmd, shell=True)
+    subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

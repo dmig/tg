@@ -15,7 +15,6 @@ _linux = "Linux"
 CONFIG_DIR = os.path.expanduser("~/.config/tg/")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "conf.py")
 FILES_DIR = os.path.expanduser("~/.cache/tg/")
-MAILCAP_FILE: Optional[str] = None
 
 LOG_LEVEL = "INFO"
 LOG_PATH = os.path.expanduser("~/.local/share/tg/")
@@ -47,14 +46,13 @@ else:
         "ffmpeg -f avfoundation -i ':0' -c:a libopus -b:a 32k {file_path}"
     )
 
-# TODO: use mailcap instead of editor
 LONG_MSG_CMD = "vim + -c 'startinsert' {file_path}"
 EDITOR = os.environ.get("EDITOR", "vi")
 
 if _os_name == _linux:
-    DEFAULT_OPEN = "xdg-open {file_path}"
+    DEFAULT_OPEN = "xdg-open"
 else:
-    DEFAULT_OPEN = "open {file_path}"
+    DEFAULT_OPEN = "open"
 
 if _os_name == _linux:
     if os.environ.get("WAYLAND_DISPLAY"):

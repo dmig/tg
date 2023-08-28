@@ -43,10 +43,6 @@ To use tg, you'll need to have the following installed:
   ```
   and then set in config `TDLIB_PATH`
 - `urlview` to choose urls when there is multiple in message, use `URL_VIEW` in config file to use another app (it should accept urls in stdin)
-- to open `stickers` and `animated` ones (thumbnail preview) you need to set in mailcap appropriate handler and have app which will open `webp` file:
-  ```ini
-  image/webp; mpv %s
-  ```
 - [ranger](https://github.com/ranger/ranger), [nnn](https://github.com/jarun/nnn) - can be used to choose file when sending, customizable with `FILE_PICKER_CMD`
 - [fzf](https://github.com/junegunn/fzf) - to create groups and secret chats (used for single and multiple user selection)
 
@@ -196,33 +192,8 @@ KEEP_MEDIA = 7
 FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 # FILE_PICKER_CMD = "nnn -p {file_path}"
 
-MAILCAP_FILE = os.path.expanduser("~/.config/mailcap")
-
 DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")  # copy file to this dir
 ```
-
-### Mailcap file
-
-Mailcap file is used for deciding how to open telegram files (docs, pics, voice notes, etc.). Path to the file can be overriden with `MAILCAP_FILE` in config file.
-
-Example: `~/.mailcap`
-
-```ini
-# media
-video/*; mpv "%s"
-audio/ogg; mpv --speed=1.33 "%s"
-audio/mpeg; mpv --no-video "%s"
-image/*; qview "%s"
-
-# text
-text/html; w3m "%s"
-text/html; open -a Firefox "%s"
-text/plain; less "%s"
-
-# fallback to vim
-text/*; vim "%s"
-```
-
 
 ## Keybindings
 
@@ -253,13 +224,7 @@ For navigation arrow keys also can be used.
 - `J,K`: move 10 msgs up/down
 - `G`: move to the last msg (at the bottom)
 - `D`: download file
-- `l`: if video, pics or audio then open app specified in mailcap file, for example:
-  ```ini
-  # Images
-  image/png; qView "%s"
-  audio/*; mpv "%s"
-  ```
-  if text, open in `less` (to view multiline msgs)
+- `l`: open
 - `e`: edit current msg
 - `<space>`: select msg and jump one msg down (use for deletion or forwarding)
 - `<ctrl+space>`: same as space but jumps one msg up
