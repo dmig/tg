@@ -471,7 +471,7 @@ class MsgView:
             for msg_idx, msg_item in msgs[ignore_before:]:
                 is_selected_msg = current_msg_idx == msg_idx
                 msg_proxy = MsgProxy(msg_item)
-                dt = msg_proxy.date.strftime("%H:%M:%S")
+                dt = msg_proxy.date.strftime(config.TIMESTAMP_FORMAT['chat'])
                 user_id_item = msg_proxy.sender_id
 
                 user_id = self.model.users.get_user_label(user_id_item)
@@ -653,11 +653,10 @@ def get_date(chat: Dict[str, Any]) -> str:
     if not last_msg:
         return "<No date>"
     dt = datetime.fromtimestamp(last_msg["date"])
-    date_fmt = "%d %b %y"
-    if datetime.today().date() == dt.date():
-        date_fmt = "%H:%M"
-    elif datetime.today().year == dt.year:
-        date_fmt = "%d %b"
+    if (datetime.today() - dt).total_seconds()/3600 < 20:
+        date_fmt = config.TIMESTAMP_FORMAT['navigation']
+    else:
+        date_fmt = config.TIMESTAMP_FORMAT['navigation_old']
     return dt.strftime(date_fmt)
 
 
