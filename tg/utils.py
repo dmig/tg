@@ -165,6 +165,7 @@ def notify(
         msg=shlex.quote(msg.translate(safe_map)),
     )
     subprocess.Popen(notify_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print('\a')
 
 
 def string_len_dwc(string: str) -> int:
