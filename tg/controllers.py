@@ -803,7 +803,7 @@ class Controller:
     def draw(self) -> None:
         while self.is_running:
             try:
-                log.info("Queue size: %d", self.queue.qsize())
+                log.debug("Queue size: %d", self.queue.qsize())
                 fun = self.queue.get()
                 fun()
             except Exception:
