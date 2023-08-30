@@ -12,13 +12,15 @@ _os_name = platform.system()
 _darwin = "Darwin"
 _linux = "Linux"
 
+def expand_path(path):
+    return os.path.expandvars(os.path.expanduser(path))
 
-CONFIG_DIR = os.path.expanduser("~/.config/tg/")
+CONFIG_DIR = expand_path("$XDG_CONFIG_HOME/tg/")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "conf.py")
-FILES_DIR = os.path.expanduser("~/.cache/tg/")
+FILES_DIR = expand_path("$XDG_CACHE_HOME/tg/")
 
 LOG_LEVEL = "INFO"
-LOG_PATH = os.path.expanduser("~/.local/share/tg/")
+LOG_PATH = expand_path("$XDG_DATA_HOME/tg/")
 
 API_ID = "559815"
 API_HASH = "fd121358f59d764c57c55871aa0807ca"
@@ -95,7 +97,7 @@ NOTIFY_TYPING = True
 
 FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 
-DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")
+DOWNLOAD_DIR = expand_path("$XDG_DOWNLOAD_DIR")
 
 TIMESTAMP_FORMAT = {
     'chat': '%d %H:%M:%S',
