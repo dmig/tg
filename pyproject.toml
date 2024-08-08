@@ -34,7 +34,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "python-telegram==0.15.0",
+    "python-telegram==0.19.0",
 ]
 dynamic = ["version"]
 
@@ -56,10 +56,7 @@ build-backend = "hatchling.build"
 managed = true
 universal = true
 dev-dependencies = [
-    "black~=20.8b1",
-    "flake8~=3.8.4",
-    "isort~=5.6.2",
-    "mypy~=0.812",
+    "mypy~=1.11.1",
 ]
 
 [tool.hatch.metadata]
@@ -68,10 +65,61 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["src/tg"]
 
-[tool.black]
-line-length = 79
+[tool.ruff]
+target-version = "py38"
+line-length = 99
+exclude = [
+    ".git",
+    ".venv",
+    ".idea",
+    ".tests",
+    "build",
+    "dist",
+]
 
-[tool.isort]
-line_length = 79
-multi_line_output = 3
-include_trailing_comma = true
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "I", # isort
+    "N", # pep8-naming
+    "S", # flake8-bandit
+    "B", # flake8-bugbear
+    "G", # flake8-logging-format
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+    "PLC", # pylint conventions
+    "PLE", # pylint errors
+    "SIM", # flake8-simplify
+    "RET", # flake8-return
+    "YTT", # flake8-2020
+    "DTZ", # flake8-datetimez
+    "RUF", # ruff-specific rules
+    "TCH", # flake8-type-checking
+    "PTH", # flake8-use-pathlib
+    "ASYNC", # flake8-async
+]
+ignore = [
+    "PTH123", # `open()` should be replaced by `Path.open()`
+    "RUF003", # Ambiguous unicode character comment
+    "RUF001", # String contains ambiguous `В` (CYRILLIC CAPITAL LETTER VE)
+    "DTZ005", # `datetime.datetime.now()` called without a `tz` argument
+    "DTZ006", # `datetime.datetime.fromtimestamp()` called without a `tz` argument
+    "RET503", # Missing explicit return at the end of function able to return non-None value
+    "S602", # subprocess call with shell=True seems safe, but may be changed in the future
+]
+
+[tool.ruff.lint.per-file-ignores]
+"config.py" = ["E501"]
+
+[tool.mypy]
+strict = true
+exclude = [
+    ".git",
+    ".venv",
+    ".idea",
+    ".tests",
+    "build",
+    "dist",
+]

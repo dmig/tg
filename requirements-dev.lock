@@ -10,29 +10,9 @@
 #   universal: true
 
 -e file:.
-black==24.8.0
-click==8.1.7
-    # via black
-colorama==0.4.6 ; platform_system == 'Windows'
-    # via click
-flake8==7.1.1
-isort==5.13.2
-mccabe==0.7.0
-    # via flake8
 mypy==1.11.1
 mypy-extensions==1.0.0
-    # via black
     # via mypy
-packaging==24.1
-    # via black
-pathspec==0.12.1
-    # via black
-platformdirs==4.2.2
-    # via black
-pycodestyle==2.12.1
-    # via flake8
-pyflakes==3.2.0
-    # via flake8
 python-telegram==0.19.0
     # via tg
 telegram-text==0.2.0

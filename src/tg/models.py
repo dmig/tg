@@ -4,7 +4,8 @@ import shutil
 import sys
 import time
 from collections import defaultdict, namedtuple
-from typing import Any, Dict, List, Optional, Set, Tuple
+from contextlib import suppress
+from typing import Any, ClassVar, Dict, List, Optional, Set, Tuple
 
 from tg.msg import MsgProxy
 from tg.tdlib import (
@@ -85,13 +86,7 @@ class Model:
         return res
 
     def set_current_chat_by_id(self, chat_id: int) -> bool:
-        idx = next(
-            iter(
-                i
-                for i, chat in enumerate(self.chats.chats)
-                if chat["id"] == chat_id
-            )
-        )
+        idx = next(iter(i for i, chat in enumerate(self.chats.chats) if chat["id"] == chat_id))
         return self.set_current_chat(idx)
 
     def set_current_chat(self, chat_idx: int) -> bool:
@@ -175,9 +170,7 @@ class Model:
         return False
 
     def can_be_deleted(self, chat_id: int, msg: Dict[str, Any]) -> bool:
-        c_id = msg["sender_id"].get("chat_id") or msg["sender_id"].get(
-            "user_id"
-        )
+        c_id = msg["sender_id"].get("chat_id") or msg["sender_id"].get("user_id")
         if chat_id == c_id:
             return msg["can_be_deleted_only_for_self"]
         return msg["can_be_deleted_for_all_users"]
@@ -201,7 +194,7 @@ class Model:
                 return False
             message_ids = [msg["id"]]
 
-        log.info(f"Deleting msg from the chat {chat_id}: {message_ids}")
+        log.info("Deleting msg from the chat %d: %s", chat_id, message_ids)
         self.tg.delete_messages(chat_id, message_ids, revoke=True)
         return True
 
@@ -240,9 +233,7 @@ class Model:
         copy_to_clipboard("\n".join(buffer))
         return True
 
-    def copy_files(
-        self, chat_id: int, msg_ids: List[int], dest_dir: str
-    ) -> bool:
+    def copy_files(self, chat_id: int, msg_ids: List[int], dest_dir: str) -> bool:
         is_copied = False
         for msg_id in msg_ids:
             _msg = self.msgs.get_message(chat_id, msg_id)
@@ -282,9 +273,7 @@ class Model:
         }
 
     def get_supergroup_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
-        result = self.tg.get_supergroup_full_info(
-            chat["type"]["supergroup_id"]
-        )
+        result = self.tg.get_supergroup_full_info(chat["type"]["supergroup_id"])
         result.wait()
         chat_info = result.update
         return {
@@ -294,9 +283,7 @@ class Model:
         }
 
     def get_channel_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
-        result = self.tg.get_supergroup_full_info(
-            chat["type"]["supergroup_id"]
-        )
+        result = self.tg.get_supergroup_full_info(chat["type"]["supergroup_id"])
         result.wait()
         chat_info = result.update
         return {
@@ -310,15 +297,12 @@ class Model:
         result.wait()
         chat_info = result.update
         enc_key = base64.b64decode(chat_info["key_hash"])[:32].hex()
-        hex_key = " ".join(
-            [enc_key[i : i + 2] for i in range(0, len(enc_key), 2)]
-        )
+        hex_key = " ".join([enc_key[i : i + 2] for i in range(0, len(enc_key), 2)])
 
-        state = "Unknown"
         try:
             state = SecretChatState[chat_info["state"]["@type"]].value
         except KeyError:
-            pass
+            state = "Unknown"
 
         user_id = chat_info["user_id"]
         user_info = self.get_user_info(user_id)
@@ -338,7 +322,7 @@ class Model:
             ChatType.chatTypeSecret: self.get_secret_chat_info,
         }
 
-        info = handlers.get(chat_type, lambda _: dict())(chat)
+        info = handlers.get(chat_type, lambda _: {})(chat)
 
         info.update({"Type": chat_type.value, "Chat Id": chat["id"]})
         return info
@@ -348,12 +332,11 @@ class Model:
         status = self.users.get_status(user_id)
         user = self.users.get_user(user_id)
         user_info = self.users.get_user_full_info(user_id)
-        user_type = "Unknown"
         try:
             user_type = UserType[user["type"]["@type"]].value
         except KeyError:
-            pass
-        info = {
+            user_type = "Unknown"
+        return {
             name: status,
             "Username": user.get("username", ""),
             "Bio": user_info.get("bio", ""),
@@ -361,7 +344,6 @@ class Model:
             "User Id": user_id,
             "Type": user_type,
         }
-        return info
 
 
 class ChatModel:
@@ -388,9 +370,7 @@ class ChatModel:
             return None
         return self.chats[index]["id"]
 
-    def fetch_chats(
-        self, offset: int = 0, limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    def fetch_chats(self, offset: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
         if offset + limit > len(self.chats):
             self._load_next_chats()
 
@@ -402,20 +382,18 @@ class ChatModel:
         https://github.com/tdlib/td/issues/56#issuecomment-364221408
         """
         if self.have_full_chat_list:
-            return None
+            return
         offset_order = 2**63 - 1
         offset_chat_id = 0
         if len(self.chats):
             offset_chat_id = self.chats[-1]["id"]
             offset_order = self.chats[-1]["order"]
-        result = self.tg.get_chats(
-            offset_chat_id=offset_chat_id, offset_order=offset_order
-        )
+        result = self.tg.get_chats(offset_chat_id=offset_chat_id, offset_order=offset_order)
 
         result.wait()
         if result.error:
-            log.error(f"get chat ids error: {result.error_info}")
-            return None
+            log.error("get chat ids error: %s", result.error_info)
+            return
 
         chat_ids = result.update["chat_ids"]
         if not chat_ids:
@@ -431,7 +409,7 @@ class ChatModel:
         result.wait()
 
         if result.error:
-            log.error(f"get chat error: {result.error_info}")
+            log.error("get chat error: %s", result.error_info)
             return {}
         return result.update
 
@@ -462,20 +440,18 @@ class ChatModel:
         )
 
     def update_chat(self, chat_id: int, **updates: Dict[str, Any]) -> bool:
-        for i, chat in enumerate(self.chats):
+        for chat in self.chats:
             if chat["id"] != chat_id:
                 continue
             chat.update(updates)
             if int(chat["order"]) == 0:
                 self.inactive_chats[chat_id] = chat
                 self.chat_ids.discard(chat_id)
-                self.chats = [
-                    _chat for _chat in self.chats if _chat["id"] != chat_id
-                ]
-                log.info(f"Removing chat '{chat['title']}'")
+                self.chats = [_chat for _chat in self.chats if _chat["id"] != chat_id]
+                log.info("Removing chat %r", chat["title"])
             else:
                 self._sort_chats()
-                log.info(f"Updated chat with keys {list(updates)}")
+                log.info("Updated chat with keys %s", str(list(updates)))
             return True
 
         if _chat := self.inactive_chats.get(chat_id):
@@ -483,11 +459,11 @@ class ChatModel:
             if int(_chat["order"]) != 0:
                 del self.inactive_chats[chat_id]
                 self.add_chat(_chat)
-                log.info(f"Marked chat '{_chat['title']}' as active")
+                log.info("Marked chat %r as active", _chat["title"])
                 return True
             return False
 
-        log.warning(f"Can't find chat {chat_id} in existing chats")
+        log.warning("Can't find chat %d in existing chats", chat_id)
         return False
 
 
@@ -538,16 +514,14 @@ class MsgModel:
         return result.update
 
     def remove_messages(self, chat_id: int, msg_ids: List[int]) -> None:
-        log.info(f"removing msg {msg_ids=}")
+        log.info("removing msg msg_ids=%r", msg_ids)
         for msg_id in msg_ids:
-            try:
+            with suppress(ValueError):
                 self.msg_ids[chat_id].remove(msg_id)
-            except ValueError:
-                pass
             self.msgs[chat_id].pop(msg_id, None)
 
     def add_message(self, chat_id: int, msg: Dict[str, Any]) -> None:
-        log.info(f"adding {msg=}")
+        log.info("adding msg=%r", msg)
         msg_id = msg["id"]
         ids = self.msg_ids[chat_id]
         self.msgs[chat_id][msg_id] = msg
@@ -568,9 +542,7 @@ class MsgModel:
         # that is the last case to implement
         # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1update_message_content_opened.html
 
-    def update_msg(
-        self, chat_id: int, msg_id: int, **fields: Dict[str, Any]
-    ) -> None:
+    def update_msg(self, chat_id: int, msg_id: int, **fields: Dict[str, Any]) -> None:
         msg = self.msgs[chat_id].get(msg_id)
         if not msg:
             return
@@ -600,7 +572,7 @@ class MsgModel:
         # tdlib could doesn't guarantee number of messages, so we need to
         # send another request on demand
         # see https://github.com/tdlib/td/issues/168
-        for i in range(3):
+        for _ in range(3):
             if len(messages) >= limit + offset:
                 break
             result = self.tg.get_chat_history(
@@ -617,17 +589,13 @@ class MsgModel:
         self, chat_id: int, offset: int = 0, limit: int = 10
     ) -> List[Tuple[int, Dict[str, Any]]]:
         if offset + limit > len(self.msg_ids[chat_id]):
-            msgs = self._fetch_msgs_until_limit(
-                chat_id, offset, offset + limit
-            )
+            msgs = self._fetch_msgs_until_limit(chat_id, offset, offset + limit)
             for msg in msgs:
                 self.add_message(chat_id, msg)
 
         return [
             (i, self.msgs[chat_id][msg_id])
-            for i, msg_id in enumerate(
-                self.msg_ids[chat_id][offset : offset + limit]
-            )
+            for i, msg_id in enumerate(self.msg_ids[chat_id][offset : offset + limit])
         ]
 
     def edit_message(self, chat_id: int, message_id: int, text: str) -> bool:
@@ -636,27 +604,25 @@ class MsgModel:
 
         result.wait()
         if result.error:
-            log.info(f"send message error: {result.error_info}")
+            log.info("send message error: %s", result.error_info)
             return False
-        else:
-            log.info(f"message has been sent: {result.update}")
-            return True
+        log.info("message has been sent: %s", result.update)
+        return True
 
     def send_message(self, chat_id: int, text: str) -> None:
         result = self.tg.send_message(chat_id, text)
         result.wait()
         if result.error:
-            log.info(f"send message error: {result.error_info}")
+            log.info("send message error: %s", result.error_info)
         else:
-            log.info(f"message has been sent: {result.update}")
+            log.info("message has been sent: %s", result.update)
 
 
 User = namedtuple("User", ["id", "name", "status", "order"])
 
 
 class UserModel:
-
-    types = {
+    types: ClassVar[Dict[str, str]] = {
         "userTypeUnknown": "unknown",
         "userTypeBot": "bot",
         "userTypeDeleted": "deleted",
@@ -679,14 +645,12 @@ class UserModel:
         result = self.tg.get_me()
         result.wait()
         if result.error:
-            log.error(f"get myself error: {result.error_info}")
+            log.error("get myself error: %s", result.error_info)
             return {}
         self.me = result.update
         return self.me
 
-    def get_user_action(
-        self, chat_id: int
-    ) -> Tuple[Optional[int], Optional[str]]:
+    def get_user_action(self, chat_id: int) -> Tuple[Optional[int], Optional[str]]:
         action = self.actions.get(chat_id)
         if action is None:
             return None, None
@@ -695,7 +659,7 @@ class UserModel:
         try:
             return user_id, ChatAction[action_type].value
         except KeyError:
-            log.error(f"ChatAction type {action_type} not implemented")
+            log.error("ChatAction type %s not implemented", action_type)
         return None, None
 
     def set_status(self, user_id: int, status: Dict[str, Any]) -> None:
@@ -713,17 +677,17 @@ class UserModel:
         try:
             status = UserStatus[user_status["@type"]]
         except KeyError:
-            log.error(f"UserStatus type {user_status} not implemented")
+            log.error("UserStatus type %s not implemented", user_status)
             return ""
 
         if status == UserStatus.userStatusEmpty:
             return ""
-        elif status == UserStatus.userStatusOnline:
+        if status == UserStatus.userStatusOnline:
             expires = user_status["expires"]
             if expires < time.time():
                 return ""
             return status.value
-        elif status == UserStatus.userStatusOffline:
+        if status == UserStatus.userStatusOffline:
             was_online = user_status["was_online"]
             ago = pretty_ts(was_online)
             return f"last seen {ago}"
@@ -737,11 +701,11 @@ class UserModel:
         try:
             status = UserStatus[user_status["@type"]]
         except KeyError:
-            log.error(f"UserStatus type {user_status} not implemented")
+            log.error("UserStatus type %s not implemented", user_status)
             return sys.maxsize
         if status == UserStatus.userStatusOnline:
             return 0
-        elif status == UserStatus.userStatusOffline:
+        if status == UserStatus.userStatusOffline:
             was_online = user_status["was_online"]
             return time.time() - was_online
         order = {
@@ -753,20 +717,16 @@ class UserModel:
 
     def is_bot(self, user_id: int) -> bool:
         user = self.get_user(user_id)
-        if user and user["type"]["@type"] == "userTypeBot":
-            return True
-        return False
+        return bool(user and user["type"]["@type"] == "userTypeBot")
 
     def is_online(self, user_id: int) -> bool:
         user = self.get_user(user_id)
-        if (
+        return bool(
             user
             and user["type"]["@type"] != "userTypeBot"
             and user["status"]["@type"] == "userStatusOnline"
             and user["status"]["expires"] > time.time()
-        ):
-            return True
-        return False
+        )
 
     def get_user_full_info(self, user_id: int) -> Dict[str, Any]:
         user = self.get_user(user_id)
@@ -778,7 +738,7 @@ class UserModel:
         result = self.tg.get_user_full_info(user_id)
         result.wait()
         if result.error:
-            log.warning(f"get user full info error: {result.error_info}")
+            log.warning("get user full info error: %s", result.error_info)
             return {}
         user["full_info"] = result.update
         return result.update
@@ -791,7 +751,7 @@ class UserModel:
         result = self.tg.get_user(user_id)
         result.wait()
         if result.error:
-            log.warning(f"get user error: {result.error_info}")
+            log.warning("get user error: %s", result.error_info)
             self.not_found.add(user_id)
             return {}
         self.users[user_id] = result.update
@@ -803,9 +763,7 @@ class UserModel:
         self.tg.get_basic_group(group_id)
         return None
 
-    def get_supergroup_info(
-        self, supergroup_id: int
-    ) -> Optional[Dict[str, Any]]:
+    def get_supergroup_info(self, supergroup_id: int) -> Optional[Dict[str, Any]]:
         if supergroup_id in self.supergroups:
             return self.supergroups[supergroup_id]
         self.tg.get_supergroup(supergroup_id)
