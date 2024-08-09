@@ -136,11 +136,11 @@ class MsgProxy:
 
     @property
     def is_text(self) -> bool:
-        return self.msg["content"]["@type"] == "messageText"
+        return self.content_type == "text"
 
     @property
     def is_poll(self) -> bool:
-        return self.msg["content"]["@type"] == "messagePoll"
+        return self.content_type == "poll"
 
     @property
     def poll_question(self) -> str:

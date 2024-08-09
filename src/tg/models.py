@@ -5,6 +5,7 @@ import sys
 import time
 from collections import defaultdict, namedtuple
 from contextlib import suppress
+from datetime import datetime
 from typing import Any, ClassVar, Dict, List, Optional, Set, Tuple
 
 from tg.msg import MsgProxy
@@ -251,11 +252,13 @@ class Model:
         user = self.users.get_user(user_id)
         user_info = self.users.get_user_full_info(user_id)
         status = self.users.get_status(user_id)
+        usernames = user.get("usernames", {}).get("active_usernames", [])
         return {
             chat["title"]: status,
-            "Username": user.get("username", ""),
-            "Phone": user.get("phone_number", ""),
-            "Bio": user_info.get("bio", ""),
+            "Phone": f"+{user.get('phone_number')}" if user.get("phone_number") else None,
+            "Bio": user_info.get("bio", {}).get("text"),
+            "Username": f"@{usernames[0]}" if len(usernames) == 1 else None,
+            "Usernames": f"@{', @'.join(usernames)}" if len(usernames) > 1 else None,
         }
 
     def get_basic_group_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
@@ -266,10 +269,16 @@ class Model:
         basic_info = self.tg.get_basic_group(group_id)
         basic_info.wait()
         basic_info = basic_info.update
+        join_date = None
+        for member in chat_info["members"]:
+            if self.is_me(member["member_id"]["user_id"]):
+                join_date = datetime.fromtimestamp(member["joined_chat_date"]).strftime("%d.%m.%Y")
+                break
         return {
             chat["title"]: f"{basic_info['member_count']} members",
             "Info": chat_info["description"],
-            "Share link": chat_info["invite_link"],
+            "Invite link": chat_info.get("invite_link", {}).get("invite_link"),
+            "Join date": join_date,
         }
 
     def get_supergroup_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
@@ -279,17 +288,24 @@ class Model:
         return {
             chat["title"]: f"{chat_info['member_count']} members",
             "Info": chat_info["description"],
-            "Share link": chat_info["invite_link"],
+            "Invite link": chat_info.get("invite_link", {}).get("invite_link"),
         }
 
     def get_channel_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
         result = self.tg.get_supergroup_full_info(chat["type"]["supergroup_id"])
         result.wait()
         chat_info = result.update
+        result = self.tg.get_supergroup(chat["type"]["supergroup_id"])
+        result.wait()
+        supergroup = result.update
+        usernames = supergroup.get("usernames", {}).get("active_usernames", [])
         return {
-            chat["title"]: "subscribers",
+            chat["title"]: f"{chat_info['member_count']} subscribers",
+            "Username": f"@{usernames[0]}" if len(usernames) == 1 else None,
+            "Usernames": f"@{', @'.join(usernames)}" if len(usernames) > 1 else None,
             "Info": chat_info["description"],
-            "Share link": chat_info["invite_link"],
+            "Invite link": chat_info.get("invite_link", {}).get("invite_link"),
+            "Saving restricted": "yes" if chat["has_protected_content"] else None,
         }
 
     def get_secret_chat_info(self, chat: Dict[str, Any]) -> Dict[str, Any]:
@@ -338,7 +354,7 @@ class Model:
             user_type = "Unknown"
         return {
             name: status,
-            "Username": user.get("username", ""),
+            "Username": user.get("usernames", []),
             "Bio": user_info.get("bio", ""),
             "Phone": user.get("phone_number", ""),
             "User Id": user_id,
@@ -793,7 +809,7 @@ class UserModel:
             return f'{user["first_name"]}'[:20]
 
         if user.get("username"):
-            return "@" + user["username"]
+            return f'@{user["username"]}'
         return "<Unknown>"
 
     def get_users(self) -> List[User]:

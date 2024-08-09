@@ -1,6 +1,7 @@
 import base64
 import curses
 import hashlib
+import json
 import logging
 import mailcap
 import math
@@ -18,7 +19,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from subprocess import CompletedProcess
 from types import TracebackType
-from typing import Any, Dict, Optional, Tuple, Type
+from typing import Any, Dict, Optional, Tuple, Type, Union
 
 from tg import config
 
@@ -315,3 +316,12 @@ def cleanup_cache() -> None:
     files_path = config.FILES_DIR / "files"
     cmd = f"find {files_path} -type f -mtime +{config.KEEP_MEDIA} -delete"
     subprocess.Popen(cmd, shell=True)
+
+
+def log_json(data: Dict[str, Any], file_path: Union[str, Path] = "data") -> None:
+    path = file_path if isinstance(file_path, Path) else config.LOG_PATH / f"{file_path}.json"
+    with open(path, "w") as f:
+        try:
+            f.write(json.dumps(data, indent=4, ensure_ascii=False))
+        except Exception as e:
+            f.write(f"Error:\n{e}")
