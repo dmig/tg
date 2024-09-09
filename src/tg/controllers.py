@@ -858,7 +858,7 @@ class Controller:
         name = f"{user['first_name']} {user['last_name']}"
 
         if text := msg.text_content if msg.is_text else msg.content_type:
-            notify(text, title=name)
+            notify(text, title=name, chat_id=chat_id, sender_id=msg.sender_id)
 
     def refresh_current_chat(self, current_chat_id: Optional[int]) -> None:
         if current_chat_id is None:

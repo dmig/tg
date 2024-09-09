@@ -179,6 +179,8 @@ def notify(
     msg: str,
     subtitle: str = "",
     title: str = "tg",
+    sender_id = 0,
+    chat_id = 0,
     cmd: str = config.NOTIFY_CMD,
 ) -> None:
     if not cmd:
@@ -188,6 +190,8 @@ def notify(
         title=shlex.quote(title),
         subtitle=shlex.quote(subtitle.translate(safe_map)),
         msg=shlex.quote(msg.translate(safe_map)),
+        chat_id=chat_id,
+        sender_id=sender_id,
     )
     subprocess.Popen(notify_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     print('\a')
