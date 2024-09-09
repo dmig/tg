@@ -205,13 +205,13 @@ class ChatView:
     def _msg_color(self, is_selected: bool = False) -> int:
         color = clr.get_color(config.COLOR_MSG_LAST, -1)
         if is_selected:
-            return color | clr.underline | clr.bold
+            return color | clr.reverse
         return color
 
     def _unread_color(self, is_selected: bool = False) -> int:
         color = clr.get_color(config.COLOR_UNREAD_COUNT, -1)
         if is_selected:
-            return color | clr.underline | clr.bold
+            return color | clr.bold
         return color
 
     def _chat_attributes(
@@ -224,7 +224,7 @@ class ChatView:
             self._msg_color(is_selected),
         )
         if is_selected:
-            return tuple(attr | clr.underline | clr.bold for attr in attrs)
+            return tuple(attr | clr.reverse for attr in attrs)
         return attrs
 
     def draw(self, current: int, chats: list[dict[str, Any]], title: str = "Chats") -> None:
@@ -625,16 +625,15 @@ class MsgView:
         else:
             textcolor = config.COLOR_MSG_NORMAL
 
-        attrs = (
-            clr.get_color(config.COLOR_TIME, -1),
-            clr.get_color(get_color_by_str(user), -1),
-            clr.get_color(config.COLOR_FLAGS, -1),
+        selected_attr = clr.reverse | clr.bold if is_selected else 0
+
+        return (
+            clr.get_color(config.COLOR_TIME, -1) | selected_attr,
+            clr.get_color(get_color_by_str(user), -1) | selected_attr,
+            clr.get_color(config.COLOR_FLAGS, -1) | selected_attr,
             clr.get_color(textcolor, bgcolor),
         )
 
-        if is_selected:
-            return tuple(attr | clr.underline | clr.bold for attr in attrs)
-        return attrs
 
     def _parse_msg(self, msg: MsgProxy) -> str:
         if msg.is_message:
