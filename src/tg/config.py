@@ -7,7 +7,7 @@ import os
 import platform
 import runpy
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 
 import tg.colors
 
@@ -70,9 +70,9 @@ if _os_name == _linux:
 else:
     COPY_CMD = "pbcopy"
 
-CHAT_FLAGS: Dict[str, str] = {}
+CHAT_FLAGS: dict[str, str] = {}
 
-MSG_FLAGS: Dict[str, str] = {}
+MSG_FLAGS: dict[str, str] = {}
 
 ICON_PATH = str(Path(__file__).parent / "resources" / "tg.png")
 

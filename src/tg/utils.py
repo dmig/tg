@@ -3,6 +3,7 @@ import curses
 import hashlib
 import json
 import logging
+import mailcap
 import math
 import mimetypes
 import os
@@ -18,7 +19,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from subprocess import CompletedProcess
 from types import TracebackType
-from typing import Any, Dict, Optional, Tuple, Type, Union
+from typing import Any, Optional, Union
 
 from tg import config
 
@@ -72,6 +73,25 @@ def get_mime(file_path: str) -> str:
         return "animation"
     return mtype.split("/")[0]
 
+
+def get_mailcap() -> dict:
+    if config.MAILCAP_FILE:
+        with open(config.MAILCAP_FILE) as f:
+            return mailcap.readmailcapfile(f)  # type: ignore
+    return mailcap.getcaps()
+
+
+def get_file_handler(file_path: str) -> str:
+    mtype, _ = mimetypes.guess_type(file_path)
+    if not mtype:
+        return config.DEFAULT_OPEN.format(file_path=shlex.quote(file_path))
+
+    caps = get_mailcap()
+    handler, view = mailcap.findmatch(caps, mtype, filename=shlex.quote(file_path))
+    if not handler:
+        return config.DEFAULT_OPEN.format(file_path=shlex.quote(file_path))
+    return handler
+
 def parse_size(size: str) -> int:
     if size[-2].isalpha():
         number, unit = size[:-2], size[-2:]
@@ -83,7 +103,7 @@ def parse_size(size: str) -> int:
 def humanize_size(
     num: int,
     suffix: str = "B",
-    suffixes: Tuple[str, ...] = (
+    suffixes: tuple[str, ...] = (
         "",
         "K",
         "M",
@@ -135,7 +155,7 @@ def get_duration(file_path: Path) -> int:
     return 0
 
 
-def get_video_resolution(file_path: Path) -> Tuple[int, int]:
+def get_video_resolution(file_path: Path) -> tuple[int, int]:
     cmd = (
         f"ffprobe -v error -show_entries stream=width,height -of default=noprint_wrappers=1 "
         f"{shlex.quote(file_path.name)}"
@@ -231,7 +251,7 @@ class Suspend:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
+        exc_type: Optional[type[BaseException]],
         exc_val: Optional[BaseException],
         tb: Optional[TracebackType],
     ) -> None:
@@ -302,7 +322,7 @@ def cleanup_cache() -> None:
     subprocess.Popen(cmd, shell=True)
 
 
-def log_json(data: Dict[str, Any], file_path: Union[str, Path] = "data") -> None:
+def log_json(data: dict[str, Any], file_path: Union[str, Path] = "data") -> None:
     path = file_path if isinstance(file_path, Path) else config.LOG_PATH / f"{file_path}.json"
     with open(path, "w") as f:
         try:

@@ -21,7 +21,6 @@ from tg.utils import (
     is_no,
     is_yes,
     notify,
-    open_file,
 )
 from tg.views import View
 
