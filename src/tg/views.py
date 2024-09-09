@@ -1,17 +1,17 @@
 import curses
 import logging
+import shlex
 from _curses import window  # type: ignore
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from tempfile import NamedTemporaryFile
-import shlex
+from typing import Any, Optional, Union, cast
 
+from tg import colors as clr
 from tg import config
-from tg.colors import bold, get_color, underline, white
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType, get_chat_type, is_group
-from tg.utils import get_color_by_str, num, string_len_dwc, truncate_to_len, Suspend
+from tg.utils import Suspend, get_color_by_str, num, string_len_dwc, truncate_to_len
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ class View:
         curses.start_color()
         curses.use_default_colors()
         # init white color first to initialize colors correctly
-        get_color(white, -1)
+        clr.get_color(clr.white, -1)
 
         self.stdscr = stdscr
         self.chats = chat_view
@@ -79,7 +79,7 @@ class View:
         curses.endwin()
         self.stdscr.refresh()
 
-    def get_keys(self) -> Tuple[int, str]:
+    def get_keys(self) -> tuple[int, str]:
         keys = repeat_factor = ""
 
         for _ in range(MAX_KEYBINDING_LENGTH):
@@ -209,38 +209,38 @@ class ChatView:
         self.win.resize(self.h, self.w)
 
     def _msg_color(self, is_selected: bool = False) -> int:
-        color = get_color(config.COLOR_MSG_LAST, -1)
+        color = clr.get_color(config.COLOR_MSG_LAST, -1)
         if is_selected:
-            return color | underline | bold
+            return color | clr.underline | clr.bold
         return color
 
     def _unread_color(self, is_selected: bool = False) -> int:
-        color = get_color(config.COLOR_UNREAD_COUNT, -1)
+        color = clr.get_color(config.COLOR_UNREAD_COUNT, -1)
         if is_selected:
-            return color | underline | bold
+            return color | clr.underline | clr.bold
         return color
 
     def _chat_attributes(
         self, is_selected: bool, title: str, user: Optional[str]
-    ) -> Tuple[int, ...]:
+    ) -> tuple[int, ...]:
         attrs = (
-            get_color(config.COLOR_TIME, -1),
-            get_color(get_color_by_str(title), -1),
-            get_color(get_color_by_str(user or ""), -1),
+            clr.get_color(config.COLOR_TIME, -1),
+            clr.get_color(get_color_by_str(title), -1),
+            clr.get_color(get_color_by_str(user or ""), -1),
             self._msg_color(is_selected),
         )
         if is_selected:
-            return tuple(attr | underline | bold for attr in attrs)
+            return tuple(attr | clr.underline | clr.bold for attr in attrs)
         return attrs
 
-    def draw(self, current: int, chats: List[Dict[str, Any]], title: str = "Chats") -> None:
+    def draw(self, current: int, chats: list[dict[str, Any]], title: str = "Chats") -> None:
         self.win.erase()
         line = curses.ACS_VLINE  # type: ignore
         width = self.w - 1
 
         self.win.vline(0, width, line, self.h)
         self.win.addstr(
-            0, 0, title.center(width)[:width], get_color(config.COLOR_TITLE, -1) | bold
+            0, 0, title.center(width)[:width], clr.get_color(config.COLOR_TITLE, -1) | clr.bold
         )
 
         for i, chat in enumerate(chats, 1):
@@ -277,7 +277,7 @@ class ChatView:
 
         self._refresh()
 
-    def _get_last_msg_data(self, chat: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
+    def _get_last_msg_data(self, chat: dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
         user, last_msg = get_last_msg(chat, self.model.users)
         last_msg = last_msg.replace("\n", " ")
         if user:
@@ -288,7 +288,7 @@ class ChatView:
 
         return None, last_msg
 
-    def _get_flags(self, chat: Dict[str, Any]) -> str:
+    def _get_flags(self, chat: dict[str, Any]) -> str:
         flags = []
 
         msg = chat.get("last_message")
@@ -397,7 +397,7 @@ class MsgView:
 
     def _format_reply_msg(
         self, chat_id: int, msg: str, reply_to: int, width_limit: int
-    ) -> Tuple[str, bool]:
+    ) -> tuple[str, bool]:
         _msg = self.model.msgs.get_message(chat_id, reply_to)
         if not _msg:
             return msg, False
@@ -414,7 +414,7 @@ class MsgView:
         return msg, is_reply
 
     @staticmethod
-    def _format_url(msg_proxy: MsgProxy) -> Tuple[str, bool]:
+    def _format_url(msg_proxy: MsgProxy) -> tuple[str, bool]:
         if not msg_proxy.is_text or "web_page" not in msg_proxy.msg["content"]:
             return "", False
         web = msg_proxy.msg["content"]["web_page"]
@@ -429,7 +429,7 @@ class MsgView:
             url += f"\n | {description}"
         return url, True
 
-    def _format_msg(self, msg_proxy: MsgProxy, width_limit: int) -> Tuple[str, bool, bool, bool, bool]:
+    def _format_msg(self, msg_proxy: MsgProxy, width_limit: int) -> tuple[str, bool, bool, bool, bool]:
         is_reply = False
         msg = self._parse_msg(msg_proxy)
         is_media = not msg_proxy.is_text
@@ -471,9 +471,9 @@ class MsgView:
     def _collect_msgs_to_draw(
         self,
         current_msg_idx: int,
-        msgs: List[Tuple[int, Dict[str, Any]]],
+        msgs: list[tuple[int, dict[str, Any]]],
         min_msg_padding: int,
-    ) -> List[Tuple[Tuple[str, ...], bool, bool, bool, bool, bool, int]]:
+    ) -> list[tuple[tuple[str, ...], bool, bool, bool, bool, bool, int]]:
         """
         Tries to collect list of messages that will satisfy `min_msg_padding`
         theshold. Long messages could prevent other messages from displaying on
@@ -483,7 +483,7 @@ class MsgView:
         message could be visible on the screen.
         """
         selected_item_idx: Optional[int] = None
-        collected_items: List[Tuple[Tuple[str, ...], bool, bool, bool, bool, bool, int]] = []
+        collected_items: list[tuple[tuple[str, ...], bool, bool, bool, bool, bool, int]] = []
         for ignore_before in range(len(msgs)):
             if selected_item_idx is not None:
                 break
@@ -552,9 +552,9 @@ class MsgView:
     def draw(
         self,
         current_msg_idx: int,
-        msgs: List[Tuple[int, Dict[str, Any]]],
+        msgs: list[tuple[int, dict[str, Any]]],
         min_msg_padding: int,
-        chat: Dict[str, Any],
+        chat: dict[str, Any],
     ) -> None:
         self.win.erase()
         msgs_to_draw = self._collect_msgs_to_draw(current_msg_idx, msgs, min_msg_padding)
@@ -591,12 +591,12 @@ class MsgView:
                 column += string_len_dwc(elem)
 
         self.win.addstr(
-            0, 0, self._msg_title(chat), get_color(config.COLOR_TITLE, -1) | bold
+            0, 0, self._msg_title(chat), clr.get_color(config.COLOR_TITLE, -1) | clr.bold
         )
 
         self._refresh()
 
-    def _msg_title(self, chat: Dict[str, Any]) -> str:
+    def _msg_title(self, chat: dict[str, Any]) -> str:
         chat_type = get_chat_type(chat)
         status = ""
 
@@ -618,7 +618,7 @@ class MsgView:
         return f"{chat['title']}: {status}".center(self.w)[: self.w]
 
     def _msg_attributes(self, is_selected: bool, is_url: bool,
-                        is_reply: bool, is_media: bool, is_me: bool, user: str) -> Tuple[int, ...]:
+                        is_reply: bool, is_media: bool, is_me: bool, user: str) -> tuple[int, ...]:
         bgcolor = config.BGCOLOR_MSG_MINE if is_me else -1
         if is_me and config.COLOR_MSG_MINE != -1:
             textcolor = config.COLOR_MSG_MINE
@@ -632,14 +632,14 @@ class MsgView:
             textcolor = config.COLOR_MSG_NORMAL
 
         attrs = (
-            get_color(config.COLOR_TIME, -1),
-            get_color(get_color_by_str(user), -1),
-            get_color(config.COLOR_FLAGS, -1),
-            get_color(textcolor, bgcolor),
+            clr.get_color(config.COLOR_TIME, -1),
+            clr.get_color(get_color_by_str(user), -1),
+            clr.get_color(config.COLOR_FLAGS, -1),
+            clr.get_color(textcolor, bgcolor),
         )
 
         if is_selected:
-            return tuple(attr | underline | bold for attr in attrs)
+            return tuple(attr | clr.underline | clr.bold for attr in attrs)
         return attrs
 
     def _parse_msg(self, msg: MsgProxy) -> str:
@@ -649,7 +649,7 @@ class MsgView:
         return "unknown msg type: " + str(msg["content"])
 
 
-def get_last_msg(chat: Dict[str, Any], users: UserModel) -> Tuple[Optional[int], str]:
+def get_last_msg(chat: dict[str, Any], users: UserModel) -> tuple[Optional[int], str]:
     last_msg = chat.get("last_message")
     if not last_msg:
         return None, "<No messages yet>"
@@ -659,7 +659,7 @@ def get_last_msg(chat: Dict[str, Any], users: UserModel) -> Tuple[Optional[int],
     )
 
 
-def get_date(chat: Dict[str, Any]) -> str:
+def get_date(chat: dict[str, Any]) -> str:
     last_msg = chat.get("last_message")
     if not last_msg:
         return "<No date>"
@@ -730,7 +730,7 @@ def format_bool(value: Optional[bool]) -> Optional[str]:
     return "yes" if value else "no"
 
 
-def get_download(local: Dict[str, Union[str, bool, int]], size: Optional[int]) -> Optional[str]:
+def get_download(local: dict[str, Union[str, bool, int]], size: Optional[int]) -> Optional[str]:
     if not size:
         return None
     if local["is_downloading_completed"]:
@@ -742,7 +742,7 @@ def get_download(local: Dict[str, Union[str, bool, int]], size: Optional[int]) -
     return "no"
 
 
-def _get_action_label(users: UserModel, chat: Dict[str, Any]) -> Optional[str]:
+def _get_action_label(users: UserModel, chat: dict[str, Any]) -> Optional[str]:
     actioner, action = users.get_user_action(chat["id"])
     if actioner and action:
         label = f"{action}..."
