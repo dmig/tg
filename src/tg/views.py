@@ -136,19 +136,13 @@ class StatusView:
                 key = ord(key)
                 if key == 10:  # return
                     break
-                elif key in (127, 8):  # del
-                    if buff:
-                        buff = buff[:-1]
-                elif key == 8:  # ^H - delete previous char
+                if key in (127, 8) or key == 8:  # del
                     if buff:
                         buff = buff[:-1]
                 elif key == 23: # ^W - delete previous word
                     if buff:
                         last_space = buff.rfind(' ')
-                        if last_space > 0:
-                            buff = buff[:last_space]
-                        else:
-                            buff = ''
+                        buff = buff[:last_space] if last_space > 0 else ""
                 elif key == 21: # ^U - delete to the beginning of line
                     buff = ''
                 elif key in (7, 27):  # (^G, <esc>) cancel
