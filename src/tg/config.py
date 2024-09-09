@@ -44,11 +44,13 @@ MAX_DOWNLOAD_SIZE = "10MB"
 
 FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 
+# TODO implement category support, currently only 'im.received' is triggered
 if _os_name == _darwin:
-    NOTIFY_CMD = "terminal-notifier "\
+    NOTIFY_CMD = "terminal-notifier -group chat-{chat_id}"\
         "-title {title} -subtitle {subtitle} -message {msg} -appIcon {icon_path}"
 else:
-    NOTIFY_CMD = "notify-send "
+    NOTIFY_CMD = "notify-send --category=im.received '\
+        '--app-name={title} --icon={icon_path} {subtitle} {msg}"
 NOTIFY_TYPES = { 'private', 'group' }
 
 VIEW_TEXT_CMD = "less"
