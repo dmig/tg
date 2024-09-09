@@ -6,6 +6,7 @@ import time
 from collections import defaultdict, namedtuple
 from contextlib import suppress
 from datetime import datetime
+from os import PathLike
 from typing import Any, ClassVar, Dict, List, Optional, Set, Tuple
 
 from tg.msg import MsgProxy
@@ -234,7 +235,7 @@ class Model:
         copy_to_clipboard("\n".join(buffer))
         return True
 
-    def copy_files(self, chat_id: int, msg_ids: List[int], dest_dir: str) -> bool:
+    def copy_files(self, chat_id: int, msg_ids: List[int], dest_dir: PathLike) -> bool:
         is_copied = False
         for msg_id in msg_ids:
             _msg = self.msgs.get_message(chat_id, msg_id)
