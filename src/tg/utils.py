@@ -1,6 +1,7 @@
 import base64
 import curses
 import hashlib
+import json
 import logging
 import math
 import mimetypes
@@ -11,17 +12,18 @@ import struct
 import subprocess
 import sys
 import unicodedata
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from subprocess import CompletedProcess
 from types import TracebackType
-from typing import Any, Optional, Tuple, Type
+from typing import Any, Dict, Optional, Tuple, Type, Union
 
 from tg import config
 
 log = logging.getLogger(__name__)
-units = {"B": 1, "KB": 10 ** 3, "MB": 10 ** 6, "GB": 10 ** 9, "TB": 10 ** 12}
+units = {"B": 1, "KB": 10**3, "MB": 10**6, "GB": 10**9, "TB": 10**12}
 
 
 class LogWriter:
@@ -37,7 +39,7 @@ class LogWriter:
 
 
 def setup_log() -> None:
-    os.makedirs(config.LOG_PATH, exist_ok=True)
+    config.LOG_PATH.mkdir(parents=True, exist_ok=True)
 
     handlers = []
 
@@ -46,7 +48,7 @@ def setup_log() -> None:
         (logging.ERROR, "error.log"),
     ):
         handler = RotatingFileHandler(
-            os.path.join(config.LOG_PATH, filename),
+            config.LOG_PATH / filename,
             maxBytes=parse_size("32MB"),
             backupCount=1,
         )
@@ -96,11 +98,11 @@ def humanize_size(
     val = num / math.pow(1024, magnitude)
     if magnitude > 7:
         return "{:.1f}{}{}".format(val, "Yi", suffix)
-    return "{:3.1f}{}{}".format(val, suffixes[magnitude], suffix)
+    return f"{val:3.1f}{suffixes[magnitude]}{suffix}"
 
 
 def humanize_duration(seconds: int) -> str:
-    dt = datetime.utcfromtimestamp(seconds)
+    dt = datetime.fromtimestamp(seconds, tz=timezone.utc)
     fmt = "%-M:%S"
     if seconds >= 3600:
         fmt = "%-H:%M:%S"
@@ -122,9 +124,9 @@ def is_no(resp: str) -> bool:
     return not resp or resp.strip().lower() == "n"
 
 
-def get_duration(file_path: str) -> int:
-    cmd = f"ffprobe -v error -i '{file_path}' -show_format"
-    stdout = subprocess.check_output(shlex.split(cmd)).decode().splitlines()
+def get_duration(file_path: Path) -> int:
+    cmd = f"ffprobe -v error -i {shlex.quote(file_path.name)} -show_format"
+    stdout = subprocess.check_output(shlex.split(cmd)).decode().splitlines()  # noqa: S603
     line = next((line for line in stdout if "duration" in line), None)
     if line:
         _, duration = line.split("=")
@@ -133,16 +135,19 @@ def get_duration(file_path: str) -> int:
     return 0
 
 
-def get_video_resolution(file_path: str) -> Tuple[int, int]:
-    cmd = f"ffprobe -v error -show_entries stream=width,height -of default=noprint_wrappers=1 '{file_path}'"
-    lines = subprocess.check_output(shlex.split(cmd)).decode().splitlines()
+def get_video_resolution(file_path: Path) -> Tuple[int, int]:
+    cmd = (
+        f"ffprobe -v error -show_entries stream=width,height -of default=noprint_wrappers=1 "
+        f"{shlex.quote(file_path.name)}"
+    )
+    lines = subprocess.check_output(shlex.split(cmd)).decode().splitlines()  # noqa: S603
     info = {line.split("=")[0]: line.split("=")[1] for line in lines}
     return int(str(info.get("width"))), int(str(info.get("height")))
 
 
-def get_waveform(file_path: str) -> str:
+def get_waveform(file_path: Path) -> str:
     # stub for now
-    waveform = (random.randint(0, 255) for _ in range(100))
+    waveform = (random.randint(0, 255) for _ in range(100))  # noqa: S311
     packed = struct.pack("100B", *waveform)
     return base64.b64encode(packed).decode()
 
@@ -190,12 +195,10 @@ def truncate_to_len(string: str, width: int) -> str:
 
 
 def copy_to_clipboard(text: str) -> None:
-    subprocess.run(
-        config.COPY_CMD, universal_newlines=True, input=text, shell=True
-    )
+    subprocess.run(config.COPY_CMD, text=True, input=text, shell=True)
 
 
-class suspend:
+class Suspend:
     # FIXME: can't explicitly set type "View" due to circular import
     def __init__(self, view: Any) -> None:
         self.view = view
@@ -204,13 +207,18 @@ class suspend:
         return subprocess.run(cmd, shell=True)
 
     def run_with_input(self, cmd: str, text: str) -> None:
-        proc = subprocess.run(
-            cmd, universal_newlines=True, input=text, shell=True
-        )
+        proc = subprocess.run(cmd, text=True, input=text, shell=True)
         if proc.returncode:
             input(f"Command <{cmd}> failed: press <enter> to continue")
 
-    def __enter__(self) -> "suspend":
+    def open_file(self, file_path: str, cmd: Optional[str] = None) -> None:
+        cmd = cmd % shlex.quote(file_path) if cmd else get_file_handler(file_path)
+
+        proc = self.call(cmd)
+        if proc.returncode:
+            input(f"Command <{cmd}> failed: press <enter> to continue")
+
+    def __enter__(self) -> "Suspend":
         for view in (self.view.chats, self.view.msgs, self.view.status):
             view._refresh = view.win.noutrefresh
         self.view.resize_handler = self.view.resize_stub
@@ -246,8 +254,8 @@ def set_shorter_esc_delay(delay: int = 25) -> None:
 
 
 def pretty_ts(ts: int) -> str:
-    now = datetime.utcnow()
-    diff = now - datetime.utcfromtimestamp(ts)
+    now = datetime.now(tz=timezone.utc)
+    diff = now - datetime.fromtimestamp(ts, tz=timezone.utc)
     second_diff = diff.seconds
     day_diff = diff.days
 
@@ -280,7 +288,7 @@ def pretty_ts(ts: int) -> str:
 
 @lru_cache(maxsize=256)
 def get_color_by_str(user: str) -> int:
-    index = int(hashlib.sha1(user.encode()).hexdigest(), 16) % len(
+    index = int(hashlib.sha1(user.encode(), usedforsecurity=False).hexdigest(), 16) % len(
         config.USERS_COLORS
     )
     return config.USERS_COLORS[index]
@@ -289,6 +297,15 @@ def get_color_by_str(user: str) -> int:
 def cleanup_cache() -> None:
     if not config.KEEP_MEDIA:
         return
-    files_path = os.path.join(config.FILES_DIR, "files")
+    files_path = config.FILES_DIR / "files"
     cmd = f"find {files_path} -type f -mtime +{config.KEEP_MEDIA} -delete"
-    subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.Popen(cmd, shell=True)
+
+
+def log_json(data: Dict[str, Any], file_path: Union[str, Path] = "data") -> None:
+    path = file_path if isinstance(file_path, Path) else config.LOG_PATH / f"{file_path}.json"
+    with open(path, "w") as f:
+        try:
+            f.write(json.dumps(data, indent=4, ensure_ascii=False))
+        except Exception as e:
+            f.write(f"Error:\n{e}")

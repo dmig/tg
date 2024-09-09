@@ -1,35 +1,125 @@
-[tool.poetry]
+[project]
 name = "tg"
-version = "0.19.0"
-description = "Terminal Telegram client"
-authors = ["Paul Nameless <reacsdas@gmail.com>"]
-license = "Unlicense"
-packages = [{ include = "tg"}]
+description = "Terminal Telegram client."
+authors = [
+    { name = "Zubarev Grigoriy", email = "thirtysix@thirtysix.pw" },
+    { name = "Paul Nameless", email = "reacsdas@gmail.com" },
+]
+license = "MIT"
 readme = "readme.md"
-homepage = "https://github.com/paul-nameless/tg"
-repository = "https://github.com/paul-nameless/tg"
+requires-python = ">= 3.8"
+keywords = [
+    "telegram",
+    "telegram-client",
+    "telegram-cli",
+    "tui",
+    "tg",
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Environment :: Console :: Curses",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: System Administrators",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet",
+    "Topic :: Communications :: Chat",
+    "Typing :: Typed",
+]
+dependencies = [
+    "python-telegram==0.19.0",
+]
+dynamic = ["version"]
 
-[tool.poetry.dependencies]
-python = "^3.8"
-python-telegram = "0.15.0"
+[tool.hatch.version]
+path = "src/tg/__init__.py"
 
-[tool.poetry.dev-dependencies]
-black = "20.8b1"
-flake8 = "3.8.4"
-isort = "5.6.2"
-mypy = "0.812"
+[project.urls]
+"Source Code" = "https://codeberg.org/thirtysixpw/tg"
+"Issue Tracker" = "https://codeberg.org/thirtysixpw/tg/issues"
 
-[tool.poetry.scripts]
+[project.scripts]
 tg = "tg.__main__:main"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.black]
-line-length = 79
+[tool.rye]
+managed = true
+universal = true
+dev-dependencies = [
+    "mypy~=1.11.1",
+]
 
-[tool.isort]
-line_length = 79
-multi_line_output = 3
-include_trailing_comma = true
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tg"]
+
+[tool.ruff]
+target-version = "py38"
+line-length = 99
+exclude = [
+    ".git",
+    ".venv",
+    ".idea",
+    ".tests",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "I", # isort
+    "N", # pep8-naming
+    "S", # flake8-bandit
+    "B", # flake8-bugbear
+    "G", # flake8-logging-format
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+    "PLC", # pylint conventions
+    "PLE", # pylint errors
+    "SIM", # flake8-simplify
+    "RET", # flake8-return
+    "YTT", # flake8-2020
+    "DTZ", # flake8-datetimez
+    "RUF", # ruff-specific rules
+    "TCH", # flake8-type-checking
+    "PTH", # flake8-use-pathlib
+    "ASYNC", # flake8-async
+]
+ignore = [
+    "PTH123", # `open()` should be replaced by `Path.open()`
+    "RUF003", # Ambiguous unicode character comment
+    "RUF001", # String contains ambiguous `В` (CYRILLIC CAPITAL LETTER VE)
+    "DTZ005", # `datetime.datetime.now()` called without a `tz` argument
+    "DTZ006", # `datetime.datetime.fromtimestamp()` called without a `tz` argument
+    "RET503", # Missing explicit return at the end of function able to return non-None value
+    "S602", # subprocess call with shell=True seems safe, but may be changed in the future
+]
+
+[tool.ruff.lint.per-file-ignores]
+"config.py" = ["E501"]
+
+[tool.mypy]
+strict = true
+exclude = [
+    ".git",
+    ".venv",
+    ".idea",
+    ".tests",
+    "build",
+    "dist",
+]

@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
 from tg import utils
 
@@ -8,8 +8,7 @@ log = logging.getLogger(__name__)
 
 
 class MsgProxy:
-
-    fields_mapping = {
+    fields_mapping: ClassVar[Dict[str, Tuple[str, ...]]] = {
         "messageDocument": ("document", "document"),
         "messageVoiceNote": ("voice_note", "voice"),
         "messageText": ("text", "text"),
@@ -22,7 +21,7 @@ class MsgProxy:
         "messageAnimation": ("animation", "animation"),
     }
 
-    types = {
+    types: ClassVar[Dict[str, str]] = {
         "messageDocument": "document",
         "messageVoiceNote": "voice",
         "messageText": "text",
@@ -44,10 +43,7 @@ class MsgProxy:
             log.error("msg type not supported: %s", _type)
             return {}
         for field in fields[:deep]:
-            if isinstance(field, int):
-                doc = doc[field]
-            else:
-                doc = doc.get(field)
+            doc = doc[field] if isinstance(field, int) else doc.get(field)
             if "file" in doc:
                 return doc["file"]
             if doc is None:
@@ -140,20 +136,22 @@ class MsgProxy:
 
     @property
     def is_text(self) -> bool:
-        return self.msg["content"]["@type"] == "messageText"
+        return self.content_type == "text"
 
     @property
     def is_poll(self) -> bool:
-        return self.msg["content"]["@type"] == "messagePoll"
+        return self.content_type == "poll"
 
     @property
     def poll_question(self) -> str:
-        assert self.is_poll
+        if not self.is_poll:
+            raise ValueError("Poll is None")
         return self.msg["content"]["poll"]["question"]
 
     @property
     def poll_options(self) -> List[Dict]:
-        assert self.is_poll
+        if not self.is_poll:
+            raise ValueError("Poll is None")
         return self.msg["content"]["poll"]["options"]
 
     @property
@@ -211,7 +209,8 @@ class MsgProxy:
 
     @property
     def reply_markup_rows(self) -> List[List[Dict[str, Any]]]:
-        assert self.reply_markup
+        if not self.reply_markup:
+            raise ValueError("Reply markup is None")
         return self.reply_markup.get("rows", [])
 
     @property
@@ -220,9 +219,7 @@ class MsgProxy:
 
     @property
     def sender_id(self) -> int:
-        return self.msg["sender_id"].get("user_id") or self.msg[
-            "sender_id"
-        ].get("chat_id")
+        return self.msg["sender_id"].get("user_id") or self.msg["sender_id"].get("chat_id")
 
     @property
     def forward(self) -> Optional[Dict[str, Any]]:

@@ -1,4 +1,5 @@
 import curses
+from contextlib import suppress
 
 DEFAULT_FG = curses.COLOR_WHITE
 DEFAULT_BG = curses.COLOR_BLACK
@@ -43,11 +44,10 @@ def get_color(fg: int, bg: int) -> int:
             if bg == -1:  # -1 is the "default" color
                 bg = DEFAULT_BG
 
-            try:
+            # If this fails too, colors are probably not supported
+            with suppress(curses.error):
                 curses.init_pair(size, fg, bg)
-            except curses.error:
-                # If this fails too, colors are probably not supported
-                pass
+
         COLOR_PAIRS[key] = size
 
     return curses.color_pair(COLOR_PAIRS[key])

@@ -1,18 +1,17 @@
 import curses
 import logging
+from _curses import window  # type: ignore
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from tempfile import NamedTemporaryFile
 import shlex
-
-from _curses import window  # type: ignore
 
 from tg import config
 from tg.colors import bold, get_color, underline, white
 from tg.models import Model, UserModel
 from tg.msg import MsgProxy
 from tg.tdlib import ChatType, get_chat_type, is_group
-from tg.utils import get_color_by_str, num, string_len_dwc, truncate_to_len, suspend
+from tg.utils import get_color_by_str, num, string_len_dwc, truncate_to_len, Suspend
 
 log = logging.getLogger(__name__)
 
@@ -40,7 +39,7 @@ class Win:
         try:
             return self.win.addstr(y, x, _str, attr)
         except Exception:
-            log.exception(f"Error drawing: {y=}, {x=}, {_str=}, {attr=}")
+            log.exception("Error drawing: y=%r, x=%r, _str=%r, attr=%r", y, x, _str, attr)
 
     def __getattribute__(self, name: str) -> Any:
         if name in ("win", "addstr"):
@@ -96,10 +95,7 @@ class View:
                 continue
             keys += key
             # if match found or there are not any shortcut matches at all
-            if all(
-                p == keys or not p.startswith(keys)
-                for p in MULTICHAR_KEYBINDINGS
-            ):
+            if all(p == keys or not p.startswith(keys) for p in MULTICHAR_KEYBINDINGS):
                 break
 
         return cast(int, num(repeat_factor, default=1)), keys or "UNKNOWN"
@@ -136,9 +132,7 @@ class StatusView:
                 line = buff[-(self.w - 1) :]
                 self.win.addstr(0, 0, f"{prefix}{line}")
 
-                key = self.win.get_wch(
-                    0, min(string_len_dwc(buff + prefix), self.w - 1)
-                )
+                key = self.win.get_wch(0, min(string_len_dwc(buff + prefix), self.w - 1))
                 key = ord(key)
                 if key == 10:  # return
                     break
@@ -174,12 +168,14 @@ class StatusView:
                                 buff = buff[:-1]
                                 continue
                         elif view: #another control key, open editor
-                            with NamedTemporaryFile("w+", suffix=".txt") as f, suspend(
+                            with NamedTemporaryFile("w+", suffix=".txt") as f, Suspend(
                                 view
                             ) as s:
                                 f.write(buff)
                                 f.seek(0)
-                                proc = s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
+                                proc = s.call(
+                                     config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name))
+                                )
                                 if proc.returncode == 0:
                                     with open(f.name) as f:
                                         buff = f.read().strip()
@@ -237,9 +233,7 @@ class ChatView:
             return tuple(attr | underline | bold for attr in attrs)
         return attrs
 
-    def draw(
-        self, current: int, chats: List[Dict[str, Any]], title: str = "Chats"
-    ) -> None:
+    def draw(self, current: int, chats: List[Dict[str, Any]], title: str = "Chats") -> None:
         self.win.erase()
         line = curses.ACS_VLINE  # type: ignore
         width = self.w - 1
@@ -275,9 +269,7 @@ class ChatView:
             ):
                 if not elem:
                     continue
-                item = truncate_to_len(
-                    elem, max(0, width - offset - flags_len)
-                )
+                item = truncate_to_len(elem, max(0, width - offset - flags_len))
 
                 if len(item) > 1:
                     self.win.addstr(i, offset, item, attr)
@@ -285,9 +277,7 @@ class ChatView:
 
         self._refresh()
 
-    def _get_last_msg_data(
-        self, chat: Dict[str, Any]
-    ) -> Tuple[Optional[str], Optional[str]]:
+    def _get_last_msg_data(self, chat: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
         user, last_msg = get_last_msg(chat, self.model.users)
         last_msg = last_msg.replace("\n", " ")
         if user:
@@ -323,7 +313,7 @@ class ChatView:
         if self.model.users.is_online(chat["id"]):
             flags.append("online")
 
-        if "is_pinned" in chat and chat["is_pinned"]:
+        if chat.get("is_pinned"):
             flags.append("pinned")
 
         if chat["notification_settings"]["mute_for"]:
@@ -470,9 +460,10 @@ class MsgView:
                 if not text:
                     continue
                 _type = item.get("type", {})
-                if _type.get("@type") == "inlineKeyboardButtonTypeUrl":
-                    if url := _type.get("url"):
-                        text = f"{text} ({url})"
+                if _type.get("@type") == "inlineKeyboardButtonTypeUrl" and (
+                    url := _type.get("url")
+                ):
+                    text = f"{text} ({url})"
                 msg += f"| {text} "
             msg += "|"
         return msg
@@ -541,17 +532,18 @@ class MsgView:
                             "",
                             f" ...{msg[tail_chatacters:]}",
                         )
-                        collected_items.append((elements, is_selected_msg, is_url, is_reply, is_media, is_me, 0))
+                        collected_items.append((elements, is_selected_msg, is_url,
+                                                is_reply, is_media, is_me, 0))
                     break
-                collected_items.append((elements, is_selected_msg, is_url, is_reply, is_media, is_me, line_num))
+                collected_items.append((elements, is_selected_msg, is_url,
+                                        is_reply, is_media, is_me, line_num))
                 if is_selected_msg:
                     selected_item_idx = len(collected_items) - 1
             if (
                 # ignore first and last msg
                 selected_item_idx not in (0, len(msgs) - 1, None)
                 and selected_item_idx is not None
-                and len(collected_items) - 1 - selected_item_idx
-                < min_msg_padding
+                and len(collected_items) - 1 - selected_item_idx < min_msg_padding
             ):
                 selected_item_idx = None
 
@@ -565,9 +557,7 @@ class MsgView:
         chat: Dict[str, Any],
     ) -> None:
         self.win.erase()
-        msgs_to_draw = self._collect_msgs_to_draw(
-            current_msg_idx, msgs, min_msg_padding
-        )
+        msgs_to_draw = self._collect_msgs_to_draw(current_msg_idx, msgs, min_msg_padding)
 
         if not msgs_to_draw:
             log.error("Can't collect message for drawing!")
@@ -615,30 +605,23 @@ class MsgView:
         elif chat_type == ChatType.chatTypePrivate:
             status = self.model.users.get_status(chat["id"])
         elif chat_type == ChatType.chatTypeBasicGroup:
-            if group := self.model.users.get_group_info(
-                chat["type"]["basic_group_id"]
-            ):
+            if group := self.model.users.get_group_info(chat["type"]["basic_group_id"]):
                 status = f"{group['member_count']} members"
         elif chat_type == ChatType.chatTypeSupergroup:
-            if supergroup := self.model.users.get_supergroup_info(
-                chat["type"]["supergroup_id"]
-            ):
+            if supergroup := self.model.users.get_supergroup_info(chat["type"]["supergroup_id"]):
                 status = f"{supergroup['member_count']} members"
-        elif chat_type == ChatType.channel:
-            if supergroup := self.model.users.get_supergroup_info(
-                chat["type"]["supergroup_id"]
-            ):
-                status = f"{supergroup['member_count']} subscribers"
+        elif chat_type == ChatType.channel and (
+            supergroup := self.model.users.get_supergroup_info(chat["type"]["supergroup_id"])
+        ):
+            status = f"{supergroup['member_count']} subscribers"
 
         return f"{chat['title']}: {status}".center(self.w)[: self.w]
 
-    def _msg_attributes(self, is_selected: bool, is_url: bool, is_reply: bool, is_media: bool, is_me: bool, user: str) -> Tuple[int, ...]:
-        if is_me:
-            bgcolor = config.BGCOLOR_MSG_MINE
-        else:
-            bgcolor = -1
+    def _msg_attributes(self, is_selected: bool, is_url: bool,
+                        is_reply: bool, is_media: bool, is_me: bool, user: str) -> Tuple[int, ...]:
+        bgcolor = config.BGCOLOR_MSG_MINE if is_me else -1
         if is_me and config.COLOR_MSG_MINE != -1:
-            textcolor = config.COLOR_MSG_MINE 
+            textcolor = config.COLOR_MSG_MINE
         elif is_media and config.COLOR_MSG_MEDIA != -1:
             textcolor = config.COLOR_MSG_MEDIA
         elif is_url and config.COLOR_MSG_URL != -1:
@@ -666,9 +649,7 @@ class MsgView:
         return "unknown msg type: " + str(msg["content"])
 
 
-def get_last_msg(
-    chat: Dict[str, Any], users: UserModel
-) -> Tuple[Optional[int], str]:
+def get_last_msg(chat: Dict[str, Any], users: UserModel) -> Tuple[Optional[int], str]:
     last_msg = chat.get("last_message")
     if not last_msg:
         return None, "<No messages yet>"
@@ -703,9 +684,7 @@ def parse_content(msg: MsgProxy, users: UserModel) -> str:
         user_ids = content["member_user_ids"]
         if user_ids[0] == msg.sender_id:
             return "[joined the group]"
-        users_name = ", ".join(
-            users.get_user_label(user_id) for user_id in user_ids
-        )
+        users_name = ", ".join(users.get_user_label(user_id) for user_id in user_ids)
         return f"[added {users_name}]"
     if _type == "messageChatDeleteMember":
         user_id = content["user_id"]
@@ -724,19 +703,22 @@ def parse_content(msg: MsgProxy, users: UserModel) -> str:
     if msg.is_poll:
         content_text = f"\n {msg.poll_question}"
         for option in msg.poll_options:
-            content_text += f"\n * {option['voter_count']} ({option['vote_percentage']}%) | {option['text']}"
+            content_text += (
+                f"\n * {option['voter_count']} "
+                f"({option['vote_percentage']}%) | {option['text']}"
+            )
 
-    fields = dict(
-        name=msg.file_name,
-        download=get_download(msg.local, msg.size),
-        size=msg.human_size,
-        duration=msg.duration,
-        listened=format_bool(msg.is_listened),
-        viewed=format_bool(msg.is_viewed),
-        animated=msg.is_animated,
-        emoji=msg.sticker_emoji,
-        closed=msg.is_closed_poll,
-    )
+    fields = {
+        "name": msg.file_name,
+        "download": get_download(msg.local, msg.size),
+        "size": msg.human_size,
+        "duration": msg.duration,
+        "listened": format_bool(msg.is_listened),
+        "viewed": format_bool(msg.is_viewed),
+        "animated": msg.is_animated,
+        "emoji": msg.sticker_emoji,
+        "closed": msg.is_closed_poll,
+    }
     info = ", ".join(f"{k}={v}" for k, v in fields.items() if v is not None)
 
     return f"[{msg.content_type}: {info}]{content_text}"
@@ -748,14 +730,12 @@ def format_bool(value: Optional[bool]) -> Optional[str]:
     return "yes" if value else "no"
 
 
-def get_download(
-    local: Dict[str, Union[str, bool, int]], size: Optional[int]
-) -> Optional[str]:
+def get_download(local: Dict[str, Union[str, bool, int]], size: Optional[int]) -> Optional[str]:
     if not size:
         return None
-    elif local["is_downloading_completed"]:
+    if local["is_downloading_completed"]:
         return "yes"
-    elif local["is_downloading_active"]:
+    if local["is_downloading_active"]:
         d = int(local["downloaded_size"])
         percent = int(d * 100 / size)
         return f"{percent}%"

@@ -1,13 +1,20 @@
-.mypy_cache/
-venv/
-__pycache__
-.env
-dist
-*.log*
-Makefile
-.idea/
-*monkeytype.sqlite3
-.vscode/
+# python generated files
+__pycache__/
+*.py[oc]
 build/
-MANIFEST
-tg.egg-info/
+dist/
+wheels/
+*.egg-info
+
+# cache
+.mypy_cache/
+.ruff_cache/
+
+# project
+.venv/
+.idea/
+.vscode/
+Makefile
+.env
+*.log*
+*monkeytype.sqlite3

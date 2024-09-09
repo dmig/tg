@@ -1,8 +1,7 @@
 import logging
-import os
 import shlex
-from datetime import datetime
 from functools import partial, wraps
+from pathlib import Path
 from queue import Queue
 from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List, Optional
@@ -14,6 +13,7 @@ from tg.models import Model
 from tg.msg import MsgProxy
 from tg.tdlib import ChatAction, ChatType, Tdlib, get_chat_type, is_group
 from tg.utils import (
+    Suspend,
     get_duration,
     get_mime,
     get_video_resolution,
@@ -22,7 +22,6 @@ from tg.utils import (
     is_yes,
     notify,
     open_file,
-    suspend,
 )
 from tg.views import View
 
@@ -57,9 +56,8 @@ def bind(
             return fun(self)
 
         for key in keys:
-            assert (
-                key not in binding
-            ), f"Key {key} already binded to {binding[key]}"
+            if key in binding:
+                raise ValueError(f"Key {key} already binded to {binding[key]}")
             binding[key] = fun if repeat_factor else _no_repeat_factor  # type: ignore
 
         return wrapper
@@ -82,7 +80,7 @@ class Controller:
         chat = self.model.chats.chats[self.model.current_chat]
         info = self.model.get_chat_info(chat)
 
-        with suspend(self.view) as s:
+        with Suspend(self.view) as s:
             s.run_with_input(
                 config.VIEW_TEXT_CMD,
                 "\n".join(f"{k}: {v}" for k, v in info.items() if v),
@@ -95,7 +93,7 @@ class Controller:
         user_id = msg.sender_id
         info = self.model.get_user_info(user_id)
 
-        with suspend(self.view) as s:
+        with Suspend(self.view) as s:
             s.run_with_input(
                 config.VIEW_TEXT_CMD,
                 "\n".join(f"{k}: {v}" for k, v in info.items() if v),
@@ -136,37 +134,34 @@ class Controller:
         if not urls:
             return self.present_error("No url to open")
         if len(urls) == 1:
-            with suspend(self.view) as s:
-                s.call(
-                    config.DEFAULT_OPEN.format(file_path=shlex.quote(urls[0]))
-                )
-            return
-        with suspend(self.view) as s:
+            with Suspend(self.view) as s:
+                s.call(config.DEFAULT_OPEN.format(file_path=shlex.quote(urls[0])))
+            return None
+        with Suspend(self.view) as s:
             s.run_with_input(config.URL_VIEW, "\n".join(urls))
 
     @staticmethod
     def format_help(bindings: Dict[str, HandlerType]) -> str:
         return "\n".join(
-            f"{key}\t{fun.__name__}\t{fun.__doc__ or ''}"
-            for key, fun in sorted(bindings.items())
+            f"{key}\t{fun.__name__}\t{fun.__doc__ or ''}" for key, fun in sorted(bindings.items())
         )
 
     @bind(chat_handler, ["?"])
     def show_chat_help(self) -> None:
         _help = self.format_help(chat_handler)
-        with suspend(self.view) as s:
+        with Suspend(self.view) as s:
             s.run_with_input(config.VIEW_TEXT_CMD, _help)
 
     @bind(msg_handler, ["?"])
     def show_msg_help(self) -> None:
         _help = self.format_help(msg_handler)
-        with suspend(self.view) as s:
+        with Suspend(self.view) as s:
             s.run_with_input(config.VIEW_TEXT_CMD, _help)
 
     @bind(chat_handler, ["bp"])
     @bind(msg_handler, ["bp"])
     def breakpoint(self) -> None:
-        with suspend(self.view):
+        with Suspend(self.view):
             breakpoint()
 
     @bind(chat_handler, ["q"])
@@ -182,14 +177,12 @@ class Controller:
     def jump_to_reply_msg(self) -> None:
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
-            return
+            return None
         msg = MsgProxy(self.model.current_msg)
         if not msg.reply_msg_id:
             return self.present_error("This msg does not reply")
         if not self.model.msgs.jump_to_msg_by_id(chat_id, msg.reply_msg_id):
-            return self.present_error(
-                "Can't jump to reply msg: it's not preloaded or deleted"
-            )
+            return self.present_error("Can't jump to reply msg: it's not preloaded or deleted")
         return self.render_msgs()
 
     @bind(msg_handler, ["p"])
@@ -299,9 +292,7 @@ class Controller:
             return
         reply_to_msg = self.model.current_msg_id
         msg = MsgProxy(self.model.current_msg)
-        with NamedTemporaryFile("w+", suffix=".txt") as f, suspend(
-            self.view
-        ) as s:
+        with NamedTemporaryFile("w+", suffix=".txt") as f, Suspend(self.view) as s:
             f.write(insert_replied_msg(msg))
             f.seek(0)
             s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
@@ -335,21 +326,15 @@ class Controller:
         if not self.can_send_msg() or chat_id is None:
             self.present_info("Can't send msg in this chat")
             return
-        chat = self.model.chats.chats[self.model.current_chat]
-        with NamedTemporaryFile("r+", suffix=f"_{chat['title']}.txt") as f, suspend(
-            self.view
-        ) as s:
-            if config.NOTIFY_TYPING:
-                self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
+        with NamedTemporaryFile("r+", suffix=f"_{chat_id}.txt") as f, Suspend(self.view) as s:
+            self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
             s.call(config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name)))
             with open(f.name) as f:
                 if msg := f.read().strip():
                     self.model.send_message(text=msg)
                     self.present_info("Message sent")
                 else:
-                    self.tg.send_chat_action(
-                        chat_id, ChatAction.chatActionCancel
-                    )
+                    self.tg.send_chat_action(chat_id, ChatAction.chatActionCancel)
                     self.present_info("Message wasn't sent")
 
     @bind(msg_handler, ["dd"])
@@ -368,13 +353,13 @@ class Controller:
         if not chat_id:
             return self.present_error("No chat selected")
         try:
-            with NamedTemporaryFile("w") as f, suspend(self.view) as s:
-                s.call(config.FILE_PICKER_CMD.format(file_path=f.name))
-                with open(f.name) as f:
+            with NamedTemporaryFile("w") as temp_file, Suspend(self.view) as s:
+                s.call(config.FILE_PICKER_CMD.format(file_path=temp_file.name))
+                with open(temp_file.name) as f:
                     file_path = f.read().strip()
         except FileNotFoundError:
             pass
-        if not file_path or not os.path.isfile(file_path):
+        if not file_path or not Path(file_path).exists():
             return self.present_error("No file was selected")
         mime_map = {
             "animation": self.tg.send_animation,
@@ -384,9 +369,7 @@ class Controller:
         }
         mime = get_mime(file_path)
         if mime in ("image", "video", "animation"):
-            resp = self.view.status.get_input(
-                f"Upload <{file_path}> compressed?[Y/n]"
-            )
+            resp = self.view.status.get_input(f"Upload <{file_path}> compressed?[Y/n]")
             self.render_status()
             if resp is None:
                 return self.present_info("Uploading cancelled")
@@ -419,15 +402,18 @@ class Controller:
     @bind(msg_handler, ["sv"])
     def send_video(self) -> None:
         """Enter file path and send compressed video"""
-        file_path = self.view.status.get_input()
-        if not file_path or not os.path.isfile(file_path):
+        file_path_input = self.view.status.get_input()
+        if not file_path_input:
+            return
+        file_path = Path(file_path_input)
+        if not file_path.is_file():
             return
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
         if not chat_id:
             return
         self._send_video(file_path, chat_id)
 
-    def _send_video(self, file_path: str, chat_id: int) -> None:
+    def _send_video(self, file_path: Path, chat_id: int) -> None:
         width, height = get_video_resolution(file_path)
         duration = get_duration(file_path)
         self.tg.send_video(file_path, chat_id, width, height, duration)
@@ -438,40 +424,35 @@ class Controller:
     ) -> None:
         _input = self.view.status.get_input()
         if _input is None:
-            return
-        file_path = os.path.expanduser(_input)
-        if not file_path or not os.path.isfile(file_path):
+            return None
+        file_path = Path(_input).expanduser()
+        if not file_path.exists():
             return self.present_info("Given path to file does not exist")
 
         if chat_id := self.model.chats.id_by_index(self.model.current_chat):
-            send_file_fun(file_path, chat_id)
+            send_file_fun(file_path.name, chat_id)
             self.present_info("File sent")
 
     @bind(msg_handler, ["v"])
     def record_voice(self) -> None:
-        file_path = f"/tmp/voice-{datetime.now()}.oga"
-        with suspend(self.view) as s:
-            s.call(
-                config.VOICE_RECORD_CMD.format(
-                    file_path=shlex.quote(file_path)
-                )
-            )
-        resp = self.view.status.get_input(
-            f"Do you want to send recording: {file_path}? [Y/n]"
-        )
-        if resp is None or not is_yes(resp):
-            return self.present_info("Voice message discarded")
+        with NamedTemporaryFile(prefix="voice-", suffix=".oga") as temp_file:
+            file_path = Path(temp_file.name)
+            with Suspend(self.view) as s:
+                s.call(config.VOICE_RECORD_CMD.format(file_path=shlex.quote(str(file_path))))
+            resp = self.view.status.get_input(f"Do you want to send recording: {file_path}? [Y/n]")
+            if resp is None or not is_yes(resp):
+                return self.present_info("Voice message discarded")
 
-        if not os.path.isfile(file_path):
-            return self.present_info(f"Can't load recording file {file_path}")
+            if not file_path.is_file():
+                return self.present_info(f"Can't load recording file {file_path}")
 
-        chat_id = self.model.chats.id_by_index(self.model.current_chat)
-        if not chat_id:
-            return
-        duration = get_duration(file_path)
-        waveform = get_waveform(file_path)
-        self.tg.send_voice(file_path, chat_id, duration, waveform)
-        self.present_info(f"Sent voice msg: {file_path}")
+            chat_id = self.model.chats.id_by_index(self.model.current_chat)
+            if not chat_id:
+                return None
+            duration = get_duration(file_path)
+            waveform = get_waveform(file_path)
+            self.tg.send_voice(file_path, chat_id, duration, waveform)
+            self.present_info(f"Sent voice msg: {file_path}")
 
     @bind(msg_handler, ["D"])
     def download_current_file(self) -> None:
@@ -494,7 +475,8 @@ class Controller:
         try:
             chat = self.model.chats.chats[self.model.current_chat]
             return chat["permissions"]["can_send_messages"]
-        except Exception as e:
+        except Exception:
+            log.exception('can_send_msg thrown an exception')
             return True
 
     def _open_msg(self, msg: MsgProxy, cmd: str = config.DEFAULT_OPEN) -> None:
@@ -502,7 +484,8 @@ class Controller:
             with NamedTemporaryFile("w", suffix=".txt") as f:
                 f.write(msg.text_content)
                 f.flush()
-                open_file(f.name)
+                with Suspend(self.view) as s:
+                    s.open_file(f.name, cmd)
             return
 
         chat_id = self.model.chats.id_by_index(self.model.current_chat)
@@ -513,7 +496,8 @@ class Controller:
             self.download_current_file()
             return
         self.tg.open_message_content(chat_id, msg.msg_id)
-        open_file(path, cmd)
+        with Suspend(self.view) as s:
+            s.open_file(path, cmd)
 
     @bind(msg_handler, ["!"])
     def open_msg_with_cmd(self) -> None:
@@ -521,7 +505,11 @@ class Controller:
         msg = MsgProxy(self.model.current_msg)
         cmd = self.view.status.get_input()
         if not cmd:
-            return
+            return None
+        if "%s" not in cmd:
+            return self.present_error(
+                "command should contain <%s> which will be replaced by file path"
+            )
         return self._open_msg(msg, cmd)
 
     @bind(msg_handler, ["l", "^J"])
@@ -541,9 +529,7 @@ class Controller:
         if not msg.can_be_edited:
             return self.present_error("Meessage can't be edited!")
 
-        with NamedTemporaryFile("r+", suffix=".txt") as f, suspend(
-            self.view
-        ) as s:
+        with NamedTemporaryFile("r+", suffix=".txt") as f, Suspend(self.view) as s:
             f.write(msg.text_content)
             f.flush()
             s.call(f"{config.EDITOR} {f.name}")
@@ -567,7 +553,7 @@ class Controller:
         if is_multiple:
             cmd += " -m"
 
-        with NamedTemporaryFile("r+") as tmp, suspend(self.view) as s:
+        with NamedTemporaryFile("r+") as tmp, Suspend(self.view) as s:
             s.run_with_input(f"{cmd} > {tmp.name}", users_out)
             with open(tmp.name) as f:
                 return [int(line.split()[0]) for line in f.readlines()]
@@ -585,7 +571,7 @@ class Controller:
         """Create new group"""
         user_ids = self._get_user_ids(is_multiple=True)
         if not user_ids:
-            return
+            return None
         title = self.view.status.get_input("Group name: ")
         if title is None:
             return self.present_info("Cancelling creating group")
@@ -611,14 +597,10 @@ class Controller:
             if is_no(resp or ""):
                 return self.present_info("Not leaving group/channel")
             self.tg.leave_chat(chat["id"])
-            self.tg.delete_chat_history(
-                chat["id"], remove_from_chat_list=True, revoke=False
-            )
-            return
+            self.tg.delete_chat_history(chat["id"], remove_from_chat_list=True, revoke=False)
+            return None
 
-        resp = self.view.status.get_input(
-            "Are you sure you want to delete the chat?[y/N]"
-        )
+        resp = self.view.status.get_input("Are you sure you want to delete the chat?[y/N]")
         if is_no(resp or ""):
             return self.present_info("Not deleting chat")
 
@@ -630,9 +612,7 @@ class Controller:
             self.render_status()
             is_revoke = is_no(resp)
 
-        self.tg.delete_chat_history(
-            chat["id"], remove_from_chat_list=True, revoke=is_revoke
-        )
+        self.tg.delete_chat_history(chat["id"], remove_from_chat_list=True, revoke=is_revoke)
         if chat_type == ChatType.chatTypeSecret:
             self.tg.close_secret_chat(chat["type"]["secret_chat_id"])
 
@@ -641,17 +621,13 @@ class Controller:
     @bind(chat_handler, ["n"])
     def next_found_chat(self) -> None:
         """Go to next found chat"""
-        if self.model.set_current_chat_by_id(
-            self.model.chats.next_found_chat()
-        ):
+        if self.model.set_current_chat_by_id(self.model.chats.next_found_chat()):
             self.render()
 
     @bind(chat_handler, ["N"])
     def prev_found_chat(self) -> None:
         """Go to previous found chat"""
-        if self.model.set_current_chat_by_id(
-            self.model.chats.next_found_chat(True)
-        ):
+        if self.model.set_current_chat_by_id(self.model.chats.next_found_chat(True)):
             self.render()
 
     @bind(chat_handler, ["/"])
@@ -669,7 +645,7 @@ class Controller:
         chat_id = chat_ids[0]
         if chat_id not in self.model.chats.chat_ids:
             self.present_info("Chat not loaded")
-            return
+            return None
 
         self.model.chats.found_chats = chat_ids
 
@@ -771,9 +747,7 @@ class Controller:
                 repeat_factor, keys = self.view.get_keys()
                 fun = handlers.get(keys, lambda *_: None)
                 res = fun(self, repeat_factor)  # type: ignore
-                if res == "QUIT":
-                    return res
-                elif res == "BACK":
+                if res == "QUIT" or res == "BACK":
                     return res
             except Exception:
                 log.exception("Error happend in key handle loop")
@@ -839,9 +813,7 @@ class Controller:
         chats = self.model.get_chats(
             self.model.current_chat, page_size, MSGS_LEFT_SCROLL_THRESHOLD
         )
-        selected_chat = min(
-            self.model.current_chat, page_size - MSGS_LEFT_SCROLL_THRESHOLD
-        )
+        selected_chat = min(self.model.current_chat, page_size - MSGS_LEFT_SCROLL_THRESHOLD)
         self.view.chats.draw(selected_chat, chats, self.model.chats.title)
 
     def render_msgs(self) -> None:
@@ -857,9 +829,7 @@ class Controller:
             msgs_left_scroll_threshold=MSGS_LEFT_SCROLL_THRESHOLD,
         )
         chat = self.model.chats.chats[self.model.current_chat]
-        self.view.msgs.draw(
-            current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD, chat
-        )
+        self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD, chat)
 
     def notify_for_message(self, chat_id: int, msg: MsgProxy) -> None:
         # do not notify, if muted
@@ -876,10 +846,11 @@ class Controller:
             return
 
         chat_type = get_chat_type(chat)
-        if chat_type:
-            if (is_group(chat_type) and 'group' not in config.NOTIFY_TYPES or
-                not is_group(chat_type) and 'private' not in config.NOTIFY_TYPES):
-                return
+        if chat_type and (
+            is_group(chat_type) and 'group' not in config.NOTIFY_TYPES or
+            not is_group(chat_type) and 'private' not in config.NOTIFY_TYPES
+        ):
+            return
 
         # notify
         if self.model.is_me(msg["sender_id"].get("user_id")):
@@ -915,10 +886,4 @@ def insert_replied_msg(msg: MsgProxy) -> str:
 
 
 def strip_replied_msg(msg: str) -> str:
-    return "\n".join(
-        [
-            line
-            for line in msg.split("\n")
-            if not line.startswith(REPLY_MSG_PREFIX)
-        ]
-    )
+    return "\n".join([line for line in msg.split("\n") if not line.startswith(REPLY_MSG_PREFIX)])
