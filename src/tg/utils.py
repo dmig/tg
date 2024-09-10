@@ -30,9 +30,8 @@ units = {"B": 1, "KB": 10**3, "MB": 10**6, "GB": 10**9, "TB": 10**12}
 def setup_log() -> None:
     config.LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-    conf = next(config.CONFIG_DIR.glob('logging.*'), None)
-    if conf:
-        logging.config.fileConfig(conf)
+    if config.LOGGING_CONFIG.is_file():
+        logging.config.fileConfig(config.LOGGING_CONFIG)
     else:
         logging.basicConfig(
             format="%(levelname)s [%(asctime)s] %(filename)s:%(lineno)s - "

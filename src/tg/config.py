@@ -23,6 +23,8 @@ LOG_DIR = Path(os.getenv("XDG_DATA_HOME", "~/.local/share") + "/tg/").expanduser
 
 LOG_LEVEL = "INFO"
 CONFIG_FILE = CONFIG_DIR / "conf.py"
+LOGGING_CONFIG = CONFIG_DIR / "logging.conf"
+
 
 MAILCAP_FILE: Optional[str] = None
 
