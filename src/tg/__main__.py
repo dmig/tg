@@ -12,10 +12,10 @@ from tg.models import Model
 from tg.tdlib import Tdlib
 from tg.views import ChatView, MsgView, StatusView, View
 
-log = logging.getLogger(__name__)
-
 
 def run(tg: Tdlib, stdscr: window) -> None:
+    log = logging.getLogger(__name__)
+
     # handle ctrl+c, to avoid interrupting tg when subprocess is called
     def interrupt_signal_handler(sig: int, frame: FrameType | None) -> None:
         # TODO: draw on status pane: to quite press <q>
@@ -52,6 +52,7 @@ def parse_args() -> None:
 
 def main() -> None:
     parse_args()
+    utils.setup_log()
     utils.cleanup_cache()
     tg = Tdlib(
         api_id=config.API_ID,
@@ -64,7 +65,6 @@ def main() -> None:
     )
     tg.login()
 
-    utils.setup_log()
     utils.set_shorter_esc_delay()
 
     wrapper(partial(run, tg))
