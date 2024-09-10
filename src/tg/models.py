@@ -352,6 +352,7 @@ class Model:
         try:
             user_type = UserType[user["type"]["@type"]].value
         except KeyError:
+            log.error('Failed to get user info: %r', user)
             user_type = "Unknown"
         return {
             name: status,
@@ -771,6 +772,7 @@ class UserModel:
             log.warning("get user error: %s", result.error_info)
             self.not_found.add(user_id)
             return {}
+        log.info('Retrieved user info: %r', result.update)
         self.users[user_id] = result.update
         return result.update
 
