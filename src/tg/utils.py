@@ -27,18 +27,6 @@ log = logging.getLogger(__name__)
 units = {"B": 1, "KB": 10**3, "MB": 10**6, "GB": 10**9, "TB": 10**12}
 
 
-class LogWriter:
-    def __init__(self, level: Any) -> None:
-        self.level = level
-
-    def write(self, message: str) -> None:
-        if message != "\n":
-            self.level.log(self.level, message)
-
-    def flush(self) -> None:
-        pass
-
-
 def setup_log() -> None:
     config.LOG_DIR.mkdir(parents=True, exist_ok=True)
 
