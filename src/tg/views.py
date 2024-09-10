@@ -666,7 +666,7 @@ def get_date(chat: dict[str, Any]) -> str:
 
 def parse_content(msg: MsgProxy, users: UserModel) -> str:
     if msg.is_text:
-        return msg.text_content.replace("\n", " ")
+        return msg.text_content.strip()
 
     content = msg["content"]
     _type = content["@type"]
