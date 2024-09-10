@@ -226,7 +226,7 @@ class Suspend:
             input(f"Command <{cmd}> failed: press <enter> to continue")
 
     def open_file(self, file_path: str, cmd: Optional[str] = None) -> None:
-        cmd = cmd % shlex.quote(file_path) if cmd else get_file_handler(file_path)
+        cmd = cmd.format(file_path=shlex.quote(file_path)) if cmd else get_file_handler(file_path)
 
         proc = self.call(cmd)
         if proc.returncode:
