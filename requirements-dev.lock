@@ -13,7 +13,7 @@
 mypy==1.11.1
 mypy-extensions==1.0.0
     # via mypy
-python-telegram==0.19.0
+python-telegram @ git+https://github.com/alexander-akhmetov/python-telegram@4a875e0beca9fc7f8a7d9c016cb3fd9b534ab1b3
     # via tg
 telegram-text==0.2.0
     # via python-telegram
