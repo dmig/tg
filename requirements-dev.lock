@@ -10,7 +10,7 @@
 #   universal: true
 
 -e file:.
-mypy==1.11.1
+mypy==1.11.2
 mypy-extensions==1.0.0
     # via mypy
 python-telegram @ git+https://github.com/alexander-akhmetov/python-telegram@4a875e0beca9fc7f8a7d9c016cb3fd9b534ab1b3
