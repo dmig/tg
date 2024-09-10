@@ -16,17 +16,23 @@ _darwin = "Darwin"
 _linux = "Linux"
 
 
+#region Paths
 CONFIG_DIR = Path(os.getenv("XDG_CONFIG_HOME", "~/.config") + "/tg/").expanduser()
 FILES_DIR = Path(os.getenv("XDG_CACHE_HOME", "~/.cache") + "/tg/").expanduser()
 DOWNLOAD_DIR = Path(os.getenv("XDG_DOWNLOAD_DIR", "~/Downloads")).expanduser()
 LOG_DIR = Path(os.getenv("XDG_DATA_HOME", "~/.local/share") + "/tg/").expanduser()
 
-LOG_LEVEL = "INFO"
 CONFIG_FILE = CONFIG_DIR / "conf.py"
 LOGGING_CONFIG = CONFIG_DIR / "logging.conf"
 
+ICON_PATH = str(Path(__file__).parent / "resources" / "tg.png")
+
+TDLIB_PATH = None
 
 MAILCAP_FILE: Optional[str] = None
+#endregion
+
+LOG_LEVEL = 'INFO'
 
 API_ID = "559815"
 API_HASH = "fd121358f59d764c57c55871aa0807ca"
@@ -34,17 +40,18 @@ API_HASH = "fd121358f59d764c57c55871aa0807ca"
 PHONE = None
 ENC_KEY = ""
 
-TDLIB_PATH = None
 TDLIB_VERBOSITY = 0
 
 MAX_DOWNLOAD_SIZE = "10MB"
 
+# region Commands
 FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 
 if _os_name == _darwin:
     NOTIFY_CMD = "terminal-notifier -group chat-{chat_id}"\
         "-title {title} -subtitle {subtitle} -message {msg} -appIcon {icon_path}"
 else:
+    # notify-send doesn't notification grouping implementation isn't very useful
     NOTIFY_CMD = "notify-send --category=im.received '\
         '--app-name={title} --icon={icon_path} {subtitle} {msg}"
 NOTIFY_TYPES = { 'private', 'group' }
@@ -61,21 +68,21 @@ else:
 LONG_MSG_CMD = "vim + -c 'startinsert' {file_path}"
 EDITOR = os.environ.get("EDITOR", "vi")
 
-DEFAULT_OPEN = "xdg-open" if _os_name == _linux else "open"
+DEFAULT_OPEN = ('xdg-' if _os_name == _linux else '') + "open {file_path}"
 
 if _os_name == _linux:
     COPY_CMD = "wl-copy" if os.environ.get("WAYLAND_DISPLAY") else "xclip -selection c"
 else:
     COPY_CMD = "pbcopy"
 
+URL_VIEW = "urlview"
+#endregion
+
 CHAT_FLAGS: dict[str, str] = {}
 
 MSG_FLAGS: dict[str, str] = {}
 
-ICON_PATH = str(Path(__file__).parent / "resources" / "tg.png")
-
-URL_VIEW = "urlview"
-
+#region Colors
 USERS_COLORS = list(range(20, 231))
 for i in 22,52:
     USERS_COLORS.remove(i)
@@ -93,6 +100,7 @@ COLOR_MSG_NORMAL = -1
 
 #preview of last message in chat window
 COLOR_MSG_LAST = -1
+#endregion
 
 KEEP_MEDIA = 7
 
