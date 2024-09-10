@@ -72,7 +72,7 @@ class Model:
         if chat_id is None:
             return {}
         current_msg = self.msgs.current_msgs[chat_id]
-        log.info("current-msg: %s", current_msg)
+        log.debug("current-msg: %s", current_msg)
         msg_id = self.msgs.msg_ids[chat_id][current_msg]
         return self.msgs.msgs[chat_id][msg_id]
 
@@ -531,14 +531,14 @@ class MsgModel:
         return result.update
 
     def remove_messages(self, chat_id: int, msg_ids: list[int]) -> None:
-        log.info("removing msg msg_ids=%r", msg_ids)
+        log.debug("removing msg msg_ids=%r", msg_ids)
         for msg_id in msg_ids:
             with suppress(ValueError):
                 self.msg_ids[chat_id].remove(msg_id)
             self.msgs[chat_id].pop(msg_id, None)
 
     def add_message(self, chat_id: int, msg: dict[str, Any]) -> None:
-        log.info("adding msg=%r", msg)
+        log.debug("adding msg=%r", msg)
         msg_id = msg["id"]
         ids = self.msg_ids[chat_id]
         self.msgs[chat_id][msg_id] = msg
@@ -616,30 +616,30 @@ class MsgModel:
         ]
 
     def edit_message(self, chat_id: int, message_id: int, text: str) -> bool:
-        log.info("Editing msg")
+        log.debug("Editing msg: %d - %d", chat_id, message_id)
         result = self.tg.edit_message_text(chat_id, message_id, text)
 
         result.wait()
         if result.error:
-            log.info("send message error: %s", result.error_info)
+            log.warning("send message error: %s", result.error_info)
             return False
-        log.info("message has been sent: %s", result.update)
+        log.debug("message has been sent: %s", result.update)
         return True
 
     def send_message(self, chat_id: int, text: str) -> None:
         result = self.tg.send_message(chat_id, text)
         result.wait()
         if result.error:
-            log.info("send message error: %s", result.error_info)
+            log.warning("send message error: %s", result.error_info)
         else:
-            log.info("message has been sent: %s", result.update)
+            log.debug("message has been sent: %s", result.update)
 
 
 User = namedtuple("User", ["id", "name", "status", "order"])
 
 
 class UserModel:
-    types: ClassVar[Dict[str, str]] = {
+    types: ClassVar[dict[str, str]] = {
         "userTypeUnknown": "unknown",
         "userTypeBot": "bot",
         "userTypeDeleted": "deleted",

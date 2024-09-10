@@ -140,7 +140,7 @@ def get_duration(file_path: Path) -> int:
     line = next((line for line in stdout if "duration" in line), None)
     if line:
         _, duration = line.split("=")
-        log.info("duration: %s", duration)
+        log.debug("duration: %s", duration)
         return int(float(duration))
     return 0
 

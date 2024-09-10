@@ -465,7 +465,7 @@ class Controller:
         self.present_info("File started downloading")
 
     def download(self, file_id: int, chat_id: int, msg_id: int) -> None:
-        log.info("Downloading file: file_id=%s", file_id)
+        log.debug("Downloading file: file_id=%s", file_id)
         self.model.downloads[file_id] = (chat_id, msg_id)
         self.tg.download_file(file_id=file_id)
         log.info("Downloaded: file_id=%s", file_id)
@@ -520,7 +520,7 @@ class Controller:
     @bind(msg_handler, ["e"])
     def edit_msg(self) -> None:
         msg = MsgProxy(self.model.current_msg)
-        log.info("Editing msg: %s", msg.msg)
+        log.debug("Editing msg: %d - %d", msg.chat_id, msg.msg_id)
         if not self.model.is_me(msg.sender_id):
             return self.present_error("You can edit only your messages!")
         if not msg.is_text:

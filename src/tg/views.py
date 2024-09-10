@@ -84,7 +84,7 @@ class View:
 
         for _ in range(MAX_KEYBINDING_LENGTH):
             ch = self.stdscr.getch()
-            log.info("raw ch without unctrl: %s", ch)
+            log.debug("raw ch without unctrl: %s", ch)
             try:
                 key = curses.unctrl(ch).decode()
             except Exception:
@@ -379,7 +379,7 @@ class MsgView:
         ):
             flags.append("seen")
         if state := msg_proxy.msg.get("sending_state"):
-            log.info("state: %s", state)
+            log.debug("state: %s", state)
             state_type = state["@type"]
             flags.append(self.states.get(state_type, state_type))
         if msg_proxy.msg["edit_date"]:
