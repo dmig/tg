@@ -3,6 +3,7 @@ import curses
 import hashlib
 import json
 import logging
+import logging.config
 import mailcap
 import math
 import mimetypes
@@ -11,11 +12,10 @@ import random
 import shlex
 import struct
 import subprocess
-import sys
 import unicodedata
 from datetime import datetime, timezone
 from functools import lru_cache
-from logging.handlers import RotatingFileHandler
+from logging import FileHandler
 from pathlib import Path
 from subprocess import CompletedProcess
 from types import TracebackType
@@ -40,28 +40,18 @@ class LogWriter:
 
 
 def setup_log() -> None:
-    config.LOG_PATH.mkdir(parents=True, exist_ok=True)
+    config.LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-    handlers = []
-
-    for level, filename in (
-        (config.LOG_LEVEL, "all.log"),
-        (logging.ERROR, "error.log"),
-    ):
-        handler = RotatingFileHandler(
-            config.LOG_PATH / filename,
-            maxBytes=parse_size("32MB"),
-            backupCount=1,
-        )
-        handler.setLevel(level)  # type: ignore
-        handlers.append(handler)
-
+    conf = next(config.CONFIG_DIR.glob('logging.*'), None)
+    if conf:
+        logging.config.fileConfig(conf)
+    else:
     logging.basicConfig(
-        format="%(levelname)s [%(asctime)s] %(filename)s:%(lineno)s - %(funcName)s | %(message)s",
-        handlers=handlers,
-    )
-    logging.getLogger().setLevel(config.LOG_LEVEL)
-    sys.stderr = LogWriter(log.error)  # type: ignore
+            format="%(levelname)s [%(asctime)s] %(filename)s:%(lineno)s - "
+                   "%(funcName)s | %(message)s",
+            handlers=[FileHandler(config.LOG_DIR / 'tg.log')],
+            level=config.LOG_LEVEL
+        )
     logging.captureWarnings(True)
 
 
