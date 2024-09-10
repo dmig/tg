@@ -19,7 +19,7 @@ def run(tg: Tdlib, stdscr: window) -> None:
     # handle ctrl+c, to avoid interrupting tg when subprocess is called
     def interrupt_signal_handler(sig: int, frame: FrameType | None) -> None:
         # TODO: draw on status pane: to quite press <q>
-        log.info("Interrupt signal is handled and ignored on purpose.")
+        log.warning("Interrupt signal is handled and ignored on purpose.")
 
     signal.signal(signal.SIGINT, interrupt_signal_handler)
 
