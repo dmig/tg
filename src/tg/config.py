@@ -16,20 +16,15 @@ _darwin = "Darwin"
 _linux = "Linux"
 
 
-CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", "~/.config")
-CACHE_HOME = os.getenv("XDG_CACHE_HOME", "~/.cache")
-DATA_HOME = os.getenv("XDG_DATA_HOME", "~/.local/share")
-DOWNLOAD_HOME = os.getenv("XDG_DOWNLOAD_DIR", "~/Downloads")
-
-CONFIG_DIR = Path(CONFIG_HOME + "/tg/").expanduser()
-CONFIG_FILE = CONFIG_DIR / "conf.py"
-FILES_DIR = Path(CACHE_HOME + "/tg/").expanduser()
-DOWNLOAD_DIR = Path(DOWNLOAD_HOME).expanduser()
-
-MAILCAP_FILE: Optional[str] = None
+CONFIG_DIR = Path(os.getenv("XDG_CONFIG_HOME", "~/.config") + "/tg/").expanduser()
+FILES_DIR = Path(os.getenv("XDG_CACHE_HOME", "~/.cache") + "/tg/").expanduser()
+DOWNLOAD_DIR = Path(os.getenv("XDG_DOWNLOAD_DIR", "~/Downloads")).expanduser()
+LOG_DIR = Path(os.getenv("XDG_DATA_HOME", "~/.local/share") + "/tg/").expanduser()
 
 LOG_LEVEL = "INFO"
-LOG_PATH = Path("~/.local/share/tg/").expanduser()
+CONFIG_FILE = CONFIG_DIR / "conf.py"
+
+MAILCAP_FILE: Optional[str] = None
 
 API_ID = "559815"
 API_HASH = "fd121358f59d764c57c55871aa0807ca"

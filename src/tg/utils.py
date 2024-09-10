@@ -46,7 +46,7 @@ def setup_log() -> None:
     if conf:
         logging.config.fileConfig(conf)
     else:
-    logging.basicConfig(
+        logging.basicConfig(
             format="%(levelname)s [%(asctime)s] %(filename)s:%(lineno)s - "
                    "%(funcName)s | %(message)s",
             handlers=[FileHandler(config.LOG_DIR / 'tg.log')],
@@ -317,7 +317,7 @@ def cleanup_cache() -> None:
 
 
 def log_json(data: dict[str, Any], file_path: Union[str, Path] = "data") -> None:
-    path = file_path if isinstance(file_path, Path) else config.LOG_PATH / f"{file_path}.json"
+    path = file_path if isinstance(file_path, Path) else config.LOG_DIR / f"{file_path}.json"
     with open(path, "w") as f:
         try:
             f.write(json.dumps(data, indent=4, ensure_ascii=False))
