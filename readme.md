@@ -6,10 +6,46 @@ Telegram terminal client.
 
 ![tg screenshot](tg-screenshot.png)
 
+## Project status
+
+### Disclaimer
+
+First I decided to revive abandoned [tg](https://github.com/paul-nameless/tg) project, creating this fork and merging patches from some other forks: [arza-zara](https://github.com/arza-zara/tg), [proycon](https://github.com/proycon/tg), [thirtysixpw](https://github.com/thirtysixpw/tg).
+And was planning to implement some new features, like image support.
+
+> But it turns out that underlying `ncurses` library nowhere near supports image output.
+>
+> Also `ncurses` is pretty buggy with emojis which are abundant in messages nowadays (possibly a character width issue).
+
+So this makes plans to create new client from scratch, based on [notcurses](https://github.com/dankamongmen/notcurses) library for the UI and possibly asynchronous [Telethon](https://github.com/LonamiWebs/Telethon) for protocol implementation.
+
+**I'll make some more fixes to this project and abandon it. As this is a dead end and there is no point in further development.**
+
+### Outdated parts
+
+I'll not do updates to these. But feel free to make pull requests.
+
+#### Publish
+
+Needs update for the latest python version, at least.
+
+> Run task to automatically increase version and release (<https://taskfile.dev>):
+>
+> ```sh
+> task release
+> ```
+
+#### Github action
+
+Same here `.github/workflows/main.yml`.
+
+#### Docker
+
+Using docker for such a small application is dumb. `Dockerfile` is not updated, but may still work.
 
 ## Features
 
-- [X] view mediafiles: photo, video, voice/video notes, documents
+- [X] view mediafiles using external viewer: photo, video, voice/video notes, documents
 - [X] ability to send pictures, documents, audio, video
 - [X] reply, edit, forward, delete, send messages
 - [X] stickers
@@ -24,7 +60,6 @@ Telegram terminal client.
 - [ ] search
 - [ ] bots (bot keyboard)
 
-
 ## Requirements
 
 To use tg, you'll need to have the following installed:
@@ -35,11 +70,14 @@ To use tg, you'll need to have the following installed:
 
 - [terminal-notifier](https://github.com/julienXX/terminal-notifier) - for Mac (used by default). You can change it to [dunst](https://github.com/dunst-project/dunst) for Linux or any other notifications program (see `NOTIFY_CMD` in configuration)
 - [ffmpeg](https://ffmpeg.org/) - to record voice msgs and upload videos.
+- `xclip`/`wl-copy` from [wl-clipboard](https://github.com/bugaevc/wl-clipboard) for clipboard operations
 - [tdlib](https://tdlib.github.io/td/build.html?language=Python) - in case of incompatibility with built in package.
   For example, macOS:
+
   ```sh
   brew install tdlib
   ```
+
   and then set in config `TDLIB_PATH`
 - `urlview` to choose urls when there is multiple in message, use `URL_VIEW` in config file to use another app (it should accept urls in stdin)
 - [ranger](https://github.com/ranger/ranger), [nnn](https://github.com/jarun/nnn) - can be used to choose file when sending, customizable with `FILE_PICKER_CMD`
@@ -47,67 +85,32 @@ To use tg, you'll need to have the following installed:
 
 ## Installation
 
-### From PyPI
-
-This option is recommended for production:
-
-```sh
-pip3 install tg
-tg
-```
-
-### Homebrew
-
-```sh
-brew tap paul-nameless/homebrew-repo
-brew install tg
-```
-
 ### From sources
 
-This option is recommended for development:
+This is the only option for my fork. [Rye](https://rye.astral.sh/guide/installation/) is used for package management.
 
 ```sh
-git clone https://github.com/paul-nameless/tg.git
+git clone https://github.com/dmig/tg.git
 cd tg
-pip install python-telegram
-pip install .
-tg
+rye install python-telegram
+python -m tg
 ```
-
-### Using Docker
-
-> Note that voice recordings and notifications won't work when using Docker.
-
-```sh
-docker run -it --rm ghcr.io/paul-nameless/tg
-```
-
-### From the AUR
-
-If you're using Arch Linux, you can install tg through [its AUR package](https://aur.archlinux.org/packages/telegram-tg/):
-
-If you're using the `yay` AUR helper, you can install the package with:
-```bash
-yay -S telegram-tg
-```
-
-If you want to use the latest developement version via the AUR you can find it [here](https://aur.archlinux.org/packages/telegram-tg-git/)
 
 ## Configuration
 
-Config file should be stored at `~/.config/tg/conf.py`. This is simple python file.
+Config file should be stored at `~/.config/tg/conf.py` (file name is defined in CONFIG_FILE constant). This is simple python file.
 
-### Simple config:
+### Simple config
 
 ```python
 # should start with + (plus) and contain country code
 PHONE = "[phone number in international format]"
 ```
 
-### Advanced configuration:
+### Advanced configuration
 
-All configurable variables can be found [here](https://github.com/paul-nameless/tg/blob/master/tg/config.py)
+All configurable variables can be found in [config.py](https://github.com/dmig/tg/blob/master/tg/config.py).
+Here is an example of user config file `~/.config/tg/conf.py`:
 
 ```python
 import os
@@ -126,8 +129,6 @@ ENC_KEY = get_pass("i/telegram-enc-key")
 
 # log level for debugging, info by default
 LOG_LEVEL = "DEBUG"
-# path where logs will be stored (all.log and error.log)
-LOG_PATH = os.path.expanduser("~/.local/share/tg/")
 
 # If you have problems with tdlib shipped with the client, you can install and
 # use your own, for example:
@@ -137,7 +138,12 @@ TDLIB_PATH = "/usr/local/Cellar/tdlib/1.6.0/lib/libtdjson.dylib"
 # can format title, msg, subtitle and icon_path paramters
 # In these exapmle, kitty terminal is used and when notification is pressed
 # it will focus on the tab of running tg
-NOTIFY_CMD = "/usr/local/bin/terminal-notifier -title {title} -subtitle {subtitle} -message {msg} -appIcon {icon_path} -sound default -execute '/Applications/kitty.app/Contents/MacOS/kitty @ --to unix:/tmp/kitty focus-tab --no-response -m title:tg'"
+# substituted variables:
+#   sender_id, chat_id -- ids useful for grouping
+#   icon_path -- chat icon path
+#   title, subtitle -- app name, sender name
+#   msg -- message text
+NOTIFY_CMD = "/usr/local/bin/terminal-notifier -group chat-{chat_id} -title {title} -subtitle {subtitle} -message {msg} -appIcon {icon_path} -sound default -execute '/Applications/kitty.app/Contents/MacOS/kitty @ --to unix:/tmp/kitty focus-tab --no-response -m title:tg'"
 
 # You can use your own voice recording cmd but it's better to use default one.
 # The voice note must be encoded with the Opus codec, and stored inside an OGG
@@ -190,8 +196,44 @@ KEEP_MEDIA = 7
 
 FILE_PICKER_CMD = "ranger --choosefile={file_path}"
 # FILE_PICKER_CMD = "nnn -p {file_path}"
+```
 
-DOWNLOAD_DIR = os.path.expanduser("~/Downloads/")  # copy file to this dir
+### Logging configuration
+
+Would be useful for debugging.
+Using `logging.conf` will override default logging configuration, so you need to do a full setup.
+
+Example `logging.conf`:
+
+```ini
+[loggers]
+keys=root,models
+
+[handlers]
+keys=fileHandler
+
+[formatters]
+keys=simpleFormatter
+
+[logger_root]
+level=INFO
+handlers=fileHandler
+
+[logger_models]
+qualname=models
+# silence models logger
+level=WARNING
+# this key is mandatory, even if empty
+handlers=
+
+[handler_fileHandler]
+class=FileHandler
+formatter=simpleFormatter
+args=('/tmp/tg.log' ,)
+
+[formatter_simpleFormatter]
+# same format as default
+format="%(levelname)s [%(asctime)s] %(filename)s:%(lineno)s - %(funcName)s | %(message)s"
 ```
 
 ## Keybindings
@@ -200,7 +242,7 @@ vi like keybindings are used in the project. Can be used commands like `4j` - 4 
 
 For navigation arrow keys also can be used.
 
-### Chats:
+### Chats
 
 - `j,k`: move up/down
 - `J,K`: move 10 chats up/down
@@ -217,7 +259,7 @@ For navigation arrow keys also can be used.
 - `/`: search in chats
 - `?`: show help
 
-## Msgs:
+### Msgs
 
 - `j,k`: move up/down
 - `J,K`: move 10 msgs up/down
@@ -227,7 +269,7 @@ For navigation arrow keys also can be used.
 - `e`: edit current msg
 - `<space>`: select msg and jump one msg down (use for deletion or forwarding)
 - `<ctrl+space>`: same as space but jumps one msg up
-- `y`: yank (copy) selected msgs with <space> to internal buffer (for forwarding) and copy current msg text or path to file to clipboard
+- `y`: yank (copy) selected msgs with `<space>` to internal buffer (for forwarding) and copy current msg text or path to file to clipboard
 - `p`: forward (paste) yanked (copied) msgs to current chat
 - `dd`: delete msg for everybody (multiple messages will be deleted if selected)
 - `i or a`: insert mode, type new message
@@ -246,11 +288,3 @@ For navigation arrow keys also can be used.
 - `c`: show chat info (e.g. secret chat encryption key, chat id, state, etc.)
 - `?`: show help
 - `!`: open msg with custom cmd
-
-## Publish
-
-Run task to automatically increase version and release (https://taskfile.dev):
-
-```sh
-task release
-```

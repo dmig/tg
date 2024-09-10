@@ -2,6 +2,7 @@
 name = "tg"
 description = "Terminal Telegram client."
 authors = [
+    { name = "Dmitry Geels", email = "dmitriy.geels@gmail.com" },
     { name = "Zubarev Grigoriy", email = "thirtysix@thirtysix.pw" },
     { name = "Paul Nameless", email = "reacsdas@gmail.com" },
 ]
@@ -41,8 +42,8 @@ dynamic = ["version"]
 path = "src/tg/__init__.py"
 
 [project.urls]
-"Source Code" = "https://codeberg.org/thirtysixpw/tg"
-"Issue Tracker" = "https://codeberg.org/thirtysixpw/tg/issues"
+"Source Code" = "https://github.com/dmig/tg"
+"Issue Tracker" = "https://github.com/dmig/tg/issues"
 
 [project.scripts]
 tg = "tg.__main__:main"
