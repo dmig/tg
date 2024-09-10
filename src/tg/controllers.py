@@ -4,7 +4,7 @@ from functools import partial, wraps
 from pathlib import Path
 from queue import Queue
 from tempfile import NamedTemporaryFile
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Optional
 
 from telegram.utils import AsyncResult
 
@@ -34,13 +34,13 @@ MSGS_LEFT_SCROLL_THRESHOLD = 2
 REPLY_MSG_PREFIX = "# >"
 HandlerType = Callable[[Any], Optional[str]]
 
-chat_handler: Dict[str, HandlerType] = {}
-msg_handler: Dict[str, HandlerType] = {}
+chat_handler: dict[str, HandlerType] = {}
+msg_handler: dict[str, HandlerType] = {}
 
 
 def bind(
-    binding: Dict[str, HandlerType],
-    keys: List[str],
+    binding: dict[str, HandlerType],
+    keys: list[str],
     repeat_factor: bool = False,
 ) -> Callable:
     """bind handlers to given keys"""
@@ -140,7 +140,7 @@ class Controller:
             s.run_with_input(config.URL_VIEW, "\n".join(urls))
 
     @staticmethod
-    def format_help(bindings: Dict[str, HandlerType]) -> str:
+    def format_help(bindings: dict[str, HandlerType]) -> str:
         return "\n".join(
             f"{key}\t{fun.__name__}\t{fun.__doc__ or ''}" for key, fun in sorted(bindings.items())
         )
@@ -537,7 +537,7 @@ class Controller:
                     self.model.edit_message(text=text)
                     self.present_info("Message edited")
 
-    def _get_user_ids(self, is_multiple: bool = False) -> List[int]:
+    def _get_user_ids(self, is_multiple: bool = False) -> list[int]:
         users = self.model.users.get_users()
         _, cols = self.view.stdscr.getmaxyx()
         limit = min(
@@ -737,7 +737,7 @@ class Controller:
     def close(self) -> None:
         self.is_running = False
 
-    def handle(self, handlers: Dict[str, HandlerType], size: float) -> str:
+    def handle(self, handlers: dict[str, HandlerType], size: float) -> str:
         self.chat_size = size
         self.resize()
 

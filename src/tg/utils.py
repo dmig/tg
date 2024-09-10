@@ -157,7 +157,7 @@ def get_duration(file_path: Path) -> int:
 
 def get_video_resolution(file_path: Path) -> tuple[int, int]:
     cmd = (
-        f"ffprobe -v error -show_entries stream=width,height -of default=noprint_wrappers=1 "
+        "ffprobe -v error -show_entries stream=width,height -of default=noprint_wrappers=1 "
         f"{shlex.quote(file_path.name)}"
     )
     lines = subprocess.check_output(shlex.split(cmd)).decode().splitlines()  # noqa: S603
