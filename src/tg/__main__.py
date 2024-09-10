@@ -1,11 +1,12 @@
-import logging.handlers
+import logging
 import signal
+import sys
 import threading
-from curses import window, wrapper  # type: ignore
+from curses import window, wrapper
 from functools import partial
 from types import FrameType
 
-from tg import config, update_handlers, utils
+from tg import __version__, config, update_handlers, utils
 from tg.controllers import Controller
 from tg.models import Model
 from tg.tdlib import Tdlib
@@ -43,13 +44,9 @@ def run(tg: Tdlib, stdscr: window) -> None:
 
 
 def parse_args() -> None:
-    import sys
-
     if len(sys.argv) > 1 and sys.argv[1] in ("-v", "--version"):
-        import tg
-
         print("Terminal Telegram client")
-        print("Version:", tg.__version__)
+        print("Version:", __version__)
         exit(0)
 
 
