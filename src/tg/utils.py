@@ -34,8 +34,8 @@ def setup_log() -> None:
         logging.config.fileConfig(config.LOGGING_CONFIG)
     else:
         logging.basicConfig(
-            format="%(levelname)s [%(asctime)s] %(thread)d %(filename)s:%(lineno)s - "
-                   "%(funcName)s | %(message)s",
+            format="%(asctime)s %(levelname)s %(thread)X %(name)s %(funcName)s:%(lineno)s "
+                   "| %(message)s",
             handlers=[FileHandler(config.LOG_DIR / 'tg.log')],
             level=config.LOG_LEVEL
         )
