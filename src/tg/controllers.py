@@ -50,8 +50,8 @@ def bind(
 
         for key in keys:
             if key in binding:
-                raise ValueError(f"Key {key} already binded to {binding[key]}")
-            binding[key] = fun if repeat_factor else _no_repeat_factor  # type: ignore
+                raise ValueError(f"Key {key} already bound to {binding[key]}")
+            binding[key] = fun if repeat_factor else _no_repeat_factor
 
         return wrapper
 

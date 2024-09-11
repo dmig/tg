@@ -27,6 +27,8 @@ I'll not do updates to these. But feel free to make pull requests.
 
 #### Publish
 
+`Taskfile.yml`
+
 Needs update for the latest python version, at least.
 
 > Run task to automatically increase version and release (<https://taskfile.dev>):
