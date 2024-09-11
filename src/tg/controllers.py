@@ -688,12 +688,12 @@ class Controller:
         chat_id = chat["id"]
         toggle = not chat["is_marked_as_unread"]
         self.tg.toggle_chat_is_marked_as_unread(chat_id, toggle)
-        self.render()
+        self.render_chats()
 
     @bind(chat_handler, ["r"])
     def read_msgs(self) -> None:
         self.model.view_all_msgs()
-        self.render()
+        self.render_msgs()
 
     @bind(chat_handler, ["m"])
     def toggle_mute(self) -> None:
@@ -711,7 +711,7 @@ class Controller:
         else:
             notification_settings["mute_for"] = 2147483647
         self.tg.set_chat_nottification_settings(chat_id, notification_settings)
-        self.render()
+        self.render_chats()
 
     @bind(chat_handler, ["p"])
     def toggle_pin(self) -> None:
@@ -719,7 +719,7 @@ class Controller:
         chat_id = chat["id"]
         toggle = not chat["is_pinned"]
         self.tg.toggle_chat_is_pinned(chat_id, toggle)
-        self.render()
+        self.render_chats()
 
     def run(self) -> None:
         try:
@@ -789,7 +789,8 @@ class Controller:
         self.view.status.draw(f"{level}: {msg}")
 
     def render(self) -> None:
-        self.queue.put(self._render)
+        self.render_chats()
+        self.render_msgs()
 
     def _render(self) -> None:
         self._render_chats()
@@ -864,7 +865,7 @@ class Controller:
             if chat["id"] == current_chat_id:
                 self.model.current_chat = i
                 break
-        self.render()
+        self.render_msgs()
 
 
 def insert_replied_msg(msg: MsgProxy) -> str:
