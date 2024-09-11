@@ -78,9 +78,13 @@ else:
 URL_VIEW = "urlview"
 #endregion
 
+#region String constants
 CHAT_FLAGS: dict[str, str] = {}
 
 MSG_FLAGS: dict[str, str] = {}
+
+REPLY_MSG_PREFIX = "# >"
+#endregion
 
 #region Colors
 USERS_COLORS = list(range(20, 231))
@@ -111,6 +115,12 @@ TIMESTAMP_FORMAT = {
     'navigation': '  %H:%M:%S',
     'navigation_old': '%Y-%m-%d',
 }
+
+# start scrolling to next page when number of the msgs left is less than value.
+# note, that setting high values could lead to situations when long msgs will
+# be removed from the display in order to achive scroll threshold. this could
+# cause blan areas on the msg display screen
+MSGS_LEFT_SCROLL_THRESHOLD = 2
 
 if CONFIG_FILE.is_file():
     config_params = runpy.run_path(CONFIG_FILE)  # type: ignore

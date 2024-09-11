@@ -26,12 +26,6 @@ from tg.views import View
 
 log = logging.getLogger(__name__)
 
-# start scrolling to next page when number of the msgs left is less than value.
-# note, that setting high values could lead to situations when long msgs will
-# be removed from the display in order to achive scroll threshold. this could
-# cause blan areas on the msg display screen
-MSGS_LEFT_SCROLL_THRESHOLD = 2
-REPLY_MSG_PREFIX = "# >"
 HandlerType = Callable[[Any], Optional[str]]
 
 chat_handler: dict[str, HandlerType] = {}
@@ -810,9 +804,9 @@ class Controller:
     def _render_chats(self) -> None:
         page_size = self.view.chats.h - 1
         chats = self.model.get_chats(
-            self.model.current_chat, page_size, MSGS_LEFT_SCROLL_THRESHOLD
+            self.model.current_chat, page_size, config.MSGS_LEFT_SCROLL_THRESHOLD
         )
-        selected_chat = min(self.model.current_chat, page_size - MSGS_LEFT_SCROLL_THRESHOLD)
+        selected_chat = min(self.model.current_chat, page_size - config.MSGS_LEFT_SCROLL_THRESHOLD)
         self.view.chats.draw(selected_chat, chats, self.model.chats.title)
 
     def render_msgs(self) -> None:
@@ -825,10 +819,10 @@ class Controller:
         msgs = self.model.fetch_msgs(
             current_position=current_msg_idx,
             page_size=self.view.msgs.h - 1,
-            msgs_left_scroll_threshold=MSGS_LEFT_SCROLL_THRESHOLD,
+            msgs_left_scroll_threshold=config.MSGS_LEFT_SCROLL_THRESHOLD,
         )
         chat = self.model.chats.chats[self.model.current_chat]
-        self.view.msgs.draw(current_msg_idx, msgs, MSGS_LEFT_SCROLL_THRESHOLD, chat)
+        self.view.msgs.draw(current_msg_idx, msgs, config.MSGS_LEFT_SCROLL_THRESHOLD, chat)
 
     def notify_for_message(self, chat_id: int, msg: MsgProxy) -> None:
         # do not notify, if muted
@@ -878,11 +872,11 @@ def insert_replied_msg(msg: MsgProxy) -> str:
     if not text:
         return ""
     return (
-        "\n".join([f"{REPLY_MSG_PREFIX} {line}" for line in text.split("\n")])
+        "\n".join([f"{config.REPLY_MSG_PREFIX} {line}" for line in text.split("\n")])
         # adding line with whitespace so text editor could start editing from last line
         + "\n "
     )
 
 
 def strip_replied_msg(msg: str) -> str:
-    return "\n".join([line for line in msg.split("\n") if not line.startswith(REPLY_MSG_PREFIX)])
+    return "\n".join([line for line in msg.split("\n") if not line.startswith(config.REPLY_MSG_PREFIX)])
