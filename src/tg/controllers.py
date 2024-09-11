@@ -4,6 +4,7 @@ from functools import partial, wraps
 from pathlib import Path
 from queue import Queue
 from tempfile import NamedTemporaryFile
+from threading import Timer
 from typing import Any, Callable, Optional
 
 from telegram.utils import AsyncResult
@@ -66,6 +67,7 @@ class Controller:
         self.is_running = True
         self.tg = tg
         self.chat_size = 0.5
+        self._redraw_timer: Optional[Timer] = None
 
     @bind(msg_handler, ["c"])
     def show_chat_info(self) -> None:
@@ -615,13 +617,13 @@ class Controller:
     def next_found_chat(self) -> None:
         """Go to next found chat"""
         if self.model.set_current_chat_by_id(self.model.chats.next_found_chat()):
-            self.render()
+            self.render(delay_msgs=config.MESSAGES_RENDER_DELAY)
 
     @bind(chat_handler, ["N"])
     def prev_found_chat(self) -> None:
         """Go to previous found chat"""
         if self.model.set_current_chat_by_id(self.model.chats.next_found_chat(True)):
-            self.render()
+            self.render(delay_msgs=config.MESSAGES_RENDER_DELAY)
 
     @bind(chat_handler, ["/"])
     def search_contacts(self) -> None:
@@ -660,19 +662,19 @@ class Controller:
     @bind(chat_handler, ["g"])
     def top_chat(self) -> None:
         if self.model.first_chat():
-            self.render()
+            self.render(delay_msgs=config.MESSAGES_RENDER_DELAY)
 
     @bind(chat_handler, ["j", "^B", "^N"], repeat_factor=True)
     @bind(msg_handler, ["]"])
     def next_chat(self, repeat_factor: int = 1) -> None:
         if self.model.next_chat(repeat_factor):
-            self.render()
+            self.render(delay_msgs=config.MESSAGES_RENDER_DELAY)
 
     @bind(chat_handler, ["k", "^C", "^P"], repeat_factor=True)
     @bind(msg_handler, ["["])
     def prev_chat(self, repeat_factor: int = 1) -> None:
         if self.model.prev_chat(repeat_factor):
-            self.render()
+            self.render(delay_msgs=config.MESSAGES_RENDER_DELAY)
 
     @bind(chat_handler, ["J"])
     def jump_10_chats_down(self) -> None:
@@ -788,9 +790,9 @@ class Controller:
     def _update_status(self, level: str, msg: str) -> None:
         self.view.status.draw(f"{level}: {msg}")
 
-    def render(self) -> None:
+    def render(self, delay_msgs: int = 0) -> None:
         self.render_chats()
-        self.render_msgs()
+        self.render_msgs(delay_msgs)
 
     def _render(self) -> None:
         self._render_chats()
@@ -810,7 +812,29 @@ class Controller:
         selected_chat = min(self.model.current_chat, page_size - config.MSGS_LEFT_SCROLL_THRESHOLD)
         self.view.chats.draw(selected_chat, chats, self.model.chats.title)
 
-    def render_msgs(self) -> None:
+    def render_msgs(self, delay_msgs: int = 0) -> None:
+        if delay_msgs:
+            log.debug('Redraw timer setting up: %dms', delay_msgs)
+            self._redraw_timer_reset()
+            self._redraw_timer = Timer(delay_msgs / 1000, self._timed_render_msgs)
+            self._redraw_timer.start()
+            return
+
+        self.queue.put(self._render_msgs)
+
+    def _redraw_timer_reset(self):
+        if not self._redraw_timer:
+            log.debug('Redraw timer is None')
+            return
+        if self._redraw_timer.is_alive():
+            log.debug('Redraw timer active, cancelling')
+            self._redraw_timer.cancel()
+        del self._redraw_timer
+        self._redraw_timer = None
+
+    def _timed_render_msgs(self):
+        self._redraw_timer_reset()
+        log.debug('Redraw timer rendering triggered')
         self.queue.put(self._render_msgs)
 
     def _render_msgs(self) -> None:

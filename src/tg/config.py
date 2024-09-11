@@ -116,6 +116,10 @@ TIMESTAMP_FORMAT = {
     'navigation_old': '%Y-%m-%d',
 }
 
+# delay in milliseconds before message list render
+# used to delay message list update on chat selection
+MESSAGES_RENDER_DELAY = 250
+
 # start scrolling to next page when number of the msgs left is less than value.
 # note, that setting high values could lead to situations when long msgs will
 # be removed from the display in order to achive scroll threshold. this could
