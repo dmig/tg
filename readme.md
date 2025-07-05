@@ -14,8 +14,6 @@ First I decided to revive abandoned [tg](https://github.com/paul-nameless/tg) pr
 And was planning to implement some new features, like image support.
 
 > But it turns out that underlying `ncurses` library nowhere near supports image output.
->
-> Also `ncurses` is pretty buggy with emojis which are abundant in messages nowadays (possibly a character width issue).
 
 So this makes plans to create new client from scratch, based on [notcurses](https://github.com/dankamongmen/notcurses) library for the UI and possibly asynchronous [Telethon](https://github.com/LonamiWebs/Telethon) for protocol implementation.
 
@@ -95,7 +93,7 @@ This is the only option for my fork. [Rye](https://rye.astral.sh/guide/installat
 git clone https://github.com/dmig/tg.git
 cd tg
 rye install python-telegram
-python -m tg
+rye run tg
 ```
 
 ## Configuration
