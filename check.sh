@@ -2,8 +2,11 @@
 
 set -x
 
-echo Checking and formatting with black...
-black --check src
+echo Checking formatting...
+rye fmt --check src
+
+echo Lint code...
+rye lint src
 
 echo Python type checking...
 mypy src/tg --warn-redundant-casts --warn-unused-ignores \
@@ -12,9 +15,3 @@ mypy src/tg --warn-redundant-casts --warn-unused-ignores \
     --disallow-untyped-calls --disallow-untyped-defs \
     --disallow-incomplete-defs --check-untyped-defs \
     --disallow-untyped-decorators
-
-echo Checking import sorting...
-isort -c src/tg/*.py
-
-echo Checking unused imports...
-flake8 --select=F401 src/
