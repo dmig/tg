@@ -11,7 +11,6 @@ import random
 import shlex
 import struct
 import subprocess
-import unicodedata
 from datetime import datetime, timezone
 from functools import lru_cache
 from logging import FileHandler
@@ -172,27 +171,6 @@ def notify(
     )
     subprocess.Popen(notify_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     print("\a")
-
-
-def string_len_dwc(string: str) -> int:
-    """Returns string len including count for double width characters"""
-    return sum(1 + (unicodedata.east_asian_width(c) in "WF") for c in string)
-
-
-def truncate_to_len(string: str, width: int) -> str:
-    real_len = string_len_dwc(string)
-    if real_len <= width:
-        return string
-
-    cur_len = 0
-    out_string = ""
-
-    for char in string:
-        cur_len += 2 if unicodedata.east_asian_width(char) in "WF" else 1
-        out_string += char
-        if cur_len >= width:
-            break
-    return out_string
 
 
 def copy_to_clipboard(text: str) -> None:

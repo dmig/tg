@@ -8,6 +8,7 @@ from threading import Timer
 from typing import Any, Callable, Optional
 
 from telegram.utils import AsyncResult
+from wcwidth import wcswidth
 
 from tg import config
 from tg.models import Model
@@ -538,7 +539,7 @@ class Controller:
         _, cols = self.view.stdscr.getmaxyx()
         limit = min(
             int(cols / 2),
-            max(len(user.name) for user in users),
+            max(wcswidth(user.name) for user in users),
         )
         users_out = "\n".join(
             f"{user.id}\t{user.name:<{limit}} | {user.status}"
