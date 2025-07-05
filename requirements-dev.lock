@@ -10,12 +10,16 @@
 #   universal: true
 
 -e file:.
-mypy==1.11.2
-mypy-extensions==1.0.0
+mypy==1.16.1
+mypy-extensions==1.1.0
     # via mypy
-python-telegram @ git+https://github.com/alexander-akhmetov/python-telegram@4a875e0beca9fc7f8a7d9c016cb3fd9b534ab1b3
+pathspec==0.12.1
+    # via mypy
+python-telegram @ git+https://github.com/alexander-akhmetov/python-telegram@d8c314ff4a9e66ae99ca553a3ccb344a2e0e5aaa
     # via tg
 telegram-text==0.2.0
     # via python-telegram
-typing-extensions==4.12.2
+typing-extensions==4.14.1
     # via mypy
+wcwidth==0.2.13
+    # via tg

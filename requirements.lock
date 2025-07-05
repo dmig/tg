@@ -10,7 +10,9 @@
 #   universal: true
 
 -e file:.
-python-telegram @ git+https://github.com/alexander-akhmetov/python-telegram@4a875e0beca9fc7f8a7d9c016cb3fd9b534ab1b3
+python-telegram @ git+https://github.com/alexander-akhmetov/python-telegram@d8c314ff4a9e66ae99ca553a3ccb344a2e0e5aaa
     # via tg
 telegram-text==0.2.0
     # via python-telegram
+wcwidth==0.2.13
+    # via tg
