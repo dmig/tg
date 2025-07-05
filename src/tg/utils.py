@@ -1,7 +1,6 @@
 import base64
 import curses
 import hashlib
-import json
 import logging
 import logging.config
 import mailcap
@@ -19,7 +18,7 @@ from logging import FileHandler
 from pathlib import Path
 from subprocess import CompletedProcess
 from types import TracebackType
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from tg import config
 
@@ -35,9 +34,9 @@ def setup_log() -> None:
     else:
         logging.basicConfig(
             format="%(asctime)s %(levelname)s %(thread)X %(name)s %(funcName)s:%(lineno)s "
-                   "| %(message)s",
-            handlers=[FileHandler(config.LOG_DIR / 'tg.log')],
-            level=config.LOG_LEVEL
+            "| %(message)s",
+            handlers=[FileHandler(config.LOG_DIR / "tg.log")],
+            level=config.LOG_LEVEL,
         )
     logging.captureWarnings(True)
 
@@ -51,7 +50,7 @@ def get_mime(file_path: str) -> str:
     return mtype.split("/")[0]
 
 
-def get_mailcap() -> dict:
+def get_mailcap() -> dict[str, list[mailcap._Cap]]:
     if config.MAILCAP_FILE:
         with open(config.MAILCAP_FILE) as f:
             return mailcap.readmailcapfile(f)  # type: ignore
@@ -68,6 +67,7 @@ def get_file_handler(file_path: str) -> str:
     if not handler:
         return config.DEFAULT_OPEN.format(file_path=shlex.quote(file_path))
     return handler
+
 
 def parse_size(size: str) -> int:
     if size[-2].isalpha():
@@ -91,7 +91,7 @@ def humanize_size(
         "Z",
     ),
 ) -> str:
-    magnitude = int(math.floor(math.log(num, 1024)))
+    magnitude = math.floor(math.log(num, 1024))
     val = num / math.pow(1024, magnitude)
     if magnitude > 7:
         return "{:.1f}{}{}".format(val, "Yi", suffix)
@@ -156,8 +156,8 @@ def notify(
     msg: str,
     subtitle: str = "",
     title: str = "tg",
-    sender_id = 0,
-    chat_id = 0,
+    sender_id: int | str = 0,
+    chat_id: int | str = 0,
     cmd: str = config.NOTIFY_CMD,
 ) -> None:
     if not cmd:
@@ -171,7 +171,7 @@ def notify(
         sender_id=sender_id,
     )
     subprocess.Popen(notify_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    print('\a')
+    print("\a")
 
 
 def string_len_dwc(string: str) -> int:
@@ -204,7 +204,7 @@ class Suspend:
     def __init__(self, view: Any) -> None:
         self.view = view
 
-    def call(self, cmd: str) -> CompletedProcess:
+    def call(self, cmd: str) -> CompletedProcess[bytes]:
         return subprocess.run(cmd, shell=True)
 
     def run_with_input(self, cmd: str, text: str) -> None:
@@ -244,10 +244,6 @@ class Suspend:
         self.view.stdscr.keypad(True)
         curses.curs_set(0)
         curses.doupdate()
-
-
-def open_file(file_path: str, cmd: str = config.DEFAULT_OPEN) -> None:
-    subprocess.Popen([cmd, file_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def set_shorter_esc_delay(delay: int = 25) -> None:
@@ -301,12 +297,3 @@ def cleanup_cache() -> None:
     files_path = config.FILES_DIR / "files"
     cmd = f"find {files_path} -type f -mtime +{config.KEEP_MEDIA} -delete"
     subprocess.Popen(cmd, shell=True)
-
-
-def log_json(data: dict[str, Any], file_path: Union[str, Path] = "data") -> None:
-    path = file_path if isinstance(file_path, Path) else config.LOG_DIR / f"{file_path}.json"
-    with open(path, "w") as f:
-        try:
-            f.write(json.dumps(data, indent=4, ensure_ascii=False))
-        except Exception as e:
-            f.write(f"Error:\n{e}")

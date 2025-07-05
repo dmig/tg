@@ -47,7 +47,7 @@ def parse_args() -> None:
     if len(sys.argv) > 1 and sys.argv[1] in ("-v", "--version"):
         print("Terminal Telegram client")
         print("Version:", __version__)
-        exit(0)
+        sys.exit(0)
 
 
 def main() -> None:

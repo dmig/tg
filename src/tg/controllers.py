@@ -270,7 +270,7 @@ class Controller:
             return
         chat = self.model.chats.chats[self.model.current_chat]
         reply_to_msg = self.model.current_msg_id
-        if msg := self.view.status.get_input(prefix=f'(reply) {chat["title"]}: '):
+        if msg := self.view.status.get_input(prefix=f"(reply) {chat['title']}: "):
             self.model.view_all_msgs()
             self.tg.reply_message(chat_id, reply_to_msg, msg)
             self.present_info("Message reply sent")
@@ -308,7 +308,7 @@ class Controller:
         if config.NOTIFY_TYPING:
             self.tg.send_chat_action(chat_id, ChatAction.chatActionTyping)
         chat = self.model.chats.chats[self.model.current_chat]
-        if msg := self.view.status.get_input(prefix=f'(msg) {chat["title"]}: '):
+        if msg := self.view.status.get_input(prefix=f"(msg) {chat['title']}: "):
             self.model.send_message(text=msg)
             self.present_info("Message sent")
         else:
@@ -471,7 +471,7 @@ class Controller:
             chat = self.model.chats.chats[self.model.current_chat]
             return chat["permissions"]["can_send_messages"]
         except Exception:
-            log.exception('can_send_msg thrown an exception')
+            log.exception("can_send_msg thrown an exception")
             return True
 
     def _open_msg(self, msg: MsgProxy, cmd: str = config.DEFAULT_OPEN) -> None:
@@ -814,7 +814,7 @@ class Controller:
 
     def render_msgs(self, delay_msgs: int = 0) -> None:
         if delay_msgs:
-            log.debug('Redraw timer setting up: %dms', delay_msgs)
+            log.debug("Redraw timer setting up: %dms", delay_msgs)
             self._redraw_timer_reset()
             self._redraw_timer = Timer(delay_msgs / 1000, self._timed_render_msgs)
             self._redraw_timer.start()
@@ -824,17 +824,17 @@ class Controller:
 
     def _redraw_timer_reset(self):
         if not self._redraw_timer:
-            log.debug('Redraw timer is None')
+            log.debug("Redraw timer is None")
             return
         if self._redraw_timer.is_alive():
-            log.debug('Redraw timer active, cancelling')
+            log.debug("Redraw timer active, cancelling")
             self._redraw_timer.cancel()
         del self._redraw_timer
         self._redraw_timer = None
 
     def _timed_render_msgs(self):
         self._redraw_timer_reset()
-        log.debug('Redraw timer rendering triggered')
+        log.debug("Redraw timer rendering triggered")
         self.queue.put(self._render_msgs)
 
     def _render_msgs(self) -> None:
@@ -865,8 +865,8 @@ class Controller:
 
         chat_type = get_chat_type(chat)
         if chat_type and (
-            is_group(chat_type) and 'group' not in config.NOTIFY_TYPES or
-            not is_group(chat_type) and 'private' not in config.NOTIFY_TYPES
+            (is_group(chat_type) and "group" not in config.NOTIFY_TYPES)
+            or (not is_group(chat_type) and "private" not in config.NOTIFY_TYPES)
         ):
             return
 
@@ -904,4 +904,6 @@ def insert_replied_msg(msg: MsgProxy) -> str:
 
 
 def strip_replied_msg(msg: str) -> str:
-    return "\n".join([line for line in msg.split("\n") if not line.startswith(config.REPLY_MSG_PREFIX)])
+    return "\n".join(
+        [line for line in msg.split("\n") if not line.startswith(config.REPLY_MSG_PREFIX)]
+    )

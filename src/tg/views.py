@@ -98,7 +98,7 @@ class View:
             if all(p == keys or not p.startswith(keys) for p in MULTICHAR_KEYBINDINGS):
                 break
 
-        return cast(int, num(repeat_factor, default=1)), keys or "UNKNOWN"
+        return cast("int", num(repeat_factor, default=1)), keys or "UNKNOWN"
 
 
 class StatusView:
@@ -139,12 +139,12 @@ class StatusView:
                 if key in (127, 8) or key == 8:  # del
                     if buff:
                         buff = buff[:-1]
-                elif key == 23: # ^W - delete previous word
+                elif key == 23:  # ^W - delete previous word
                     if buff:
-                        last_space = buff.rfind(' ')
+                        last_space = buff.rfind(" ")
                         buff = buff[:last_space] if last_space > 0 else ""
-                elif key == 21: # ^U - delete to the beginning of line
-                    buff = ''
+                elif key == 21:  # ^U - delete to the beginning of line
+                    buff = ""
                 elif key in (7, 27):  # (^G, <esc>) cancel
                     self.win.nodelay(True)
                     extra = []
@@ -152,30 +152,28 @@ class StatusView:
                         c = self.win.getch()
                         if c == -1:
                             break
-                        else:
-                            extra.append(c)
+
+                        extra.append(c)
                     self.win.nodelay(False)
                     curses.flushinp()
                     if len(extra) >= 2 and extra[0] == 91:
-                        if extra[1] == 68: #left arrow, treat as delete
+                        if extra[1] == 68:  # left arrow, treat as delete
                             if buff:
                                 buff = buff[:-1]
                                 continue
-                        elif view: #another control key, open editor
-                            with NamedTemporaryFile("w+", suffix=".txt") as f, Suspend(
-                                view
-                            ) as s:
+                        elif view:  # another control key, open editor
+                            with NamedTemporaryFile("w+", suffix=".txt") as f, Suspend(view) as s:
                                 f.write(buff)
                                 f.seek(0)
                                 proc = s.call(
-                                     config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name))
+                                    config.LONG_MSG_CMD.format(file_path=shlex.quote(f.name))
                                 )
                                 if proc.returncode == 0:
                                     with open(f.name) as f:
                                         buff = f.read().strip()
                                     continue
                         else:
-                            continue #ignore
+                            continue  # ignore
                     return None
                 elif chr(key).isprintable():
                     buff += chr(key)
@@ -229,7 +227,7 @@ class ChatView:
 
     def draw(self, current: int, chats: list[dict[str, Any]], title: str = "Chats") -> None:
         self.win.erase()
-        line = curses.ACS_VLINE  # type: ignore
+        line = curses.ACS_VLINE
         width = self.w - 1
 
         self.win.vline(0, width, line, self.h)
@@ -423,19 +421,19 @@ class MsgView:
             url += f"\n | {description}"
         return url, True
 
-    def _format_msg(self, msg_proxy: MsgProxy, width_limit: int) -> tuple[str, bool, bool, bool, bool]:
+    def _format_msg(
+        self, msg_proxy: MsgProxy, width_limit: int
+    ) -> tuple[str, bool, bool, bool, bool]:
         is_reply = False
         msg = self._parse_msg(msg_proxy)
         is_media = not msg_proxy.is_text
-        is_me =  self.model.is_me(msg_proxy["sender_id"].get("user_id"))
+        is_me = self.model.is_me(msg_proxy["sender_id"].get("user_id"))
         if caption := msg_proxy.caption:
             msg += "\n" + caption.replace("\n", " ")
         msg_fmt, is_url = self._format_url(msg_proxy)
         msg += msg_fmt
         if reply_to := msg_proxy.reply_msg_id:
-            msg, is_reply = self._format_reply_msg(
-                msg_proxy.chat_id, msg, reply_to, width_limit
-            )
+            msg, is_reply = self._format_reply_msg(msg_proxy.chat_id, msg, reply_to, width_limit)
         if reply_markup := self._format_reply_markup(msg_proxy):
             msg += reply_markup
 
@@ -486,7 +484,7 @@ class MsgView:
             for msg_idx, msg_item in msgs[ignore_before:]:
                 is_selected_msg = current_msg_idx == msg_idx
                 msg_proxy = MsgProxy(msg_item)
-                dt = msg_proxy.date.strftime(config.TIMESTAMP_FORMAT['chat'])
+                dt = msg_proxy.date.strftime(config.TIMESTAMP_FORMAT["chat"])
                 user_id_item = msg_proxy.sender_id
 
                 user_id = self.model.users.get_user_label(user_id_item)
@@ -529,8 +527,9 @@ class MsgView:
                         collected_items.append((elements, is_selected_msg, is_url,
                                                 is_reply, is_media, is_me, 0))
                     break
-                collected_items.append((elements, is_selected_msg, is_url,
-                                        is_reply, is_media, is_me, line_num))
+                collected_items.append(
+                    (elements, is_selected_msg, is_url, is_reply, is_media, is_me, line_num)
+                )
                 if is_selected_msg:
                     selected_item_idx = len(collected_items) - 1
             if (
@@ -611,8 +610,15 @@ class MsgView:
 
         return f"{chat['title']}: {status}".center(self.w)[: self.w]
 
-    def _msg_attributes(self, is_selected: bool, is_url: bool,
-                        is_reply: bool, is_media: bool, is_me: bool, user: str) -> tuple[int, ...]:
+    def _msg_attributes(
+        self,
+        is_selected: bool,
+        is_url: bool,
+        is_reply: bool,
+        is_media: bool,
+        is_me: bool,
+        user: str,
+    ) -> tuple[int, ...]:
         bgcolor = config.BGCOLOR_MSG_MINE if is_me else -1
         if is_me and config.COLOR_MSG_MINE != -1:
             textcolor = config.COLOR_MSG_MINE
@@ -633,7 +639,6 @@ class MsgView:
             clr.get_color(config.COLOR_FLAGS, -1) | selected_attr,
             clr.get_color(textcolor, bgcolor),
         )
-
 
     def _parse_msg(self, msg: MsgProxy) -> str:
         if msg.is_message:
@@ -657,10 +662,10 @@ def get_date(chat: dict[str, Any]) -> str:
     if not last_msg:
         return "<No date>"
     dt = datetime.fromtimestamp(last_msg["date"])
-    if (datetime.today() - dt).total_seconds()/3600 < 20:
-        date_fmt = config.TIMESTAMP_FORMAT['navigation']
+    if (datetime.now() - dt).total_seconds() / 3600 < 20:
+        date_fmt = config.TIMESTAMP_FORMAT["navigation"]
     else:
-        date_fmt = config.TIMESTAMP_FORMAT['navigation_old']
+        date_fmt = config.TIMESTAMP_FORMAT["navigation_old"]
     return dt.strftime(date_fmt)
 
 
@@ -672,7 +677,7 @@ def parse_content(msg: MsgProxy, users: UserModel) -> str:
     _type = content["@type"]
 
     if _type == "messageBasicGroupChatCreate":
-        return f"[created the group \"{content['title']}\"]"
+        return f'[created the group "{content["title"]}"]'
     if _type == "messageChatAddMembers":
         user_ids = content["member_user_ids"]
         if user_ids[0] == msg.sender_id:
@@ -686,7 +691,7 @@ def parse_content(msg: MsgProxy, users: UserModel) -> str:
         user_name = users.get_user_label(user_id)
         return f"[removed {user_name}]"
     if _type == "messageChatChangeTitle":
-        return f"[changed the group name to \"{content['title']}\"]"
+        return f'[changed the group name to "{content["title"]}"]'
 
     if not msg.content_type:
         # not implemented
@@ -697,8 +702,7 @@ def parse_content(msg: MsgProxy, users: UserModel) -> str:
         content_text = f"\n {msg.poll_question}"
         for option in msg.poll_options:
             content_text += (
-                f"\n * {option['voter_count']} "
-                f"({option['vote_percentage']}%) | {option['text']}"
+                f"\n * {option['voter_count']} ({option['vote_percentage']}%) | {option['text']}"
             )
 
     fields = {

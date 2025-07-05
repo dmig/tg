@@ -19,7 +19,6 @@ def update_handler(
     update_type: str,
 ) -> Callable[[UpdateHandler], UpdateHandler]:
     def decorator(fun: UpdateHandler) -> UpdateHandler:
-        global handlers
         if update_type in handlers:
             raise ValueError(
                 f"Update type <{update_type}> already has handler: {handlers[update_type]}"

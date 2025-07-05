@@ -9,13 +9,7 @@ authors = [
 license = "MIT"
 readme = "readme.md"
 requires-python = ">= 3.9"
-keywords = [
-    "telegram",
-    "telegram-client",
-    "telegram-cli",
-    "tui",
-    "tg",
-]
+keywords = ["telegram", "telegram-client", "telegram-cli", "tui", "tg"]
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Development Status :: 5 - Production/Stable",
@@ -36,7 +30,7 @@ classifiers = [
 dependencies = [
     "python-telegram @ git+https://github.com/alexander-akhmetov/python-telegram",
 ]
-dynamic = ["version"]
+version = "0.21.0"
 
 [tool.hatch.version]
 path = "src/tg/__init__.py"
@@ -55,9 +49,7 @@ build-backend = "hatchling.build"
 [tool.rye]
 managed = true
 universal = true
-dev-dependencies = [
-    "mypy~=1.11.2",
-]
+dev-dependencies = ["mypy~=1.16.0"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -68,36 +60,29 @@ packages = ["src/tg"]
 [tool.ruff]
 target-version = "py39"
 line-length = 99
-exclude = [
-    ".git",
-    ".venv",
-    ".idea",
-    ".tests",
-    "build",
-    "dist",
-]
+exclude = [".git", ".venv", ".idea", ".tests", "build", "dist"]
 
 [tool.ruff.lint]
 select = [
-    "E", # pycodestyle errors
-    "W", # pycodestyle warnings
-    "F", # pyflakes
-    "I", # isort
-    "N", # pep8-naming
-    "S", # flake8-bandit
-    "B", # flake8-bugbear
-    "G", # flake8-logging-format
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade
-    "PLC", # pylint conventions
-    "PLE", # pylint errors
-    "SIM", # flake8-simplify
-    "RET", # flake8-return
-    "YTT", # flake8-2020
-    "DTZ", # flake8-datetimez
-    "RUF", # ruff-specific rules
-    "TCH", # flake8-type-checking
-    "PTH", # flake8-use-pathlib
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "N",     # pep8-naming
+    "S",     # flake8-bandit
+    "B",     # flake8-bugbear
+    "G",     # flake8-logging-format
+    "C4",    # flake8-comprehensions
+    "UP",    # pyupgrade
+    "PLC",   # pylint conventions
+    "PLE",   # pylint errors
+    "SIM",   # flake8-simplify
+    "RET",   # flake8-return
+    "YTT",   # flake8-2020
+    "DTZ",   # flake8-datetimez
+    "RUF",   # ruff-specific rules
+    "TCH",   # flake8-type-checking
+    "PTH",   # flake8-use-pathlib
     "ASYNC", # flake8-async
 ]
 ignore = [
@@ -107,19 +92,17 @@ ignore = [
     "DTZ005", # `datetime.datetime.now()` called without a `tz` argument
     "DTZ006", # `datetime.datetime.fromtimestamp()` called without a `tz` argument
     "RET503", # Missing explicit return at the end of function able to return non-None value
-    "S602", # subprocess call with shell=True seems safe, but may be changed in the future
+    "S602",   # subprocess call with shell=True seems safe, but may be changed in the future
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "config.py" = ["E501"]
+"tdlib.py" = ["N815"]
 
 [tool.mypy]
 strict = true
-exclude = [
-    ".git",
-    ".venv",
-    ".idea",
-    ".tests",
-    "build",
-    "dist",
-]
+exclude = [".git", ".venv", ".idea", ".tests", "build", "dist"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"

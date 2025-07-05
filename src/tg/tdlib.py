@@ -1,59 +1,60 @@
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
-from telegram.client import AsyncResult, Telegram
+from telegram.client import Telegram
+from telegram.utils import AsyncResult
 
 
 class ChatAction(Enum):
-    chatActionTyping = "typing"  # noqa: N815
-    chatActionCancel = "cancel"  # noqa: N815
-    chatActionRecordingVideo = "recording video"  # noqa: N815
-    chatActionUploadingVideo = "uploading video"  # noqa: N815
-    chatActionRecordingVoiceNote = "recording voice"  # noqa: N815
-    chatActionUploadingVoiceNote = "uploading voice"  # noqa: N815
-    chatActionUploadingPhoto = "uploading photo"  # noqa: N815
-    chatActionUploadingDocument = "uploading document"  # noqa: N815
-    chatActionChoosingLocation = "choosing location"  # noqa: N815
-    chatActionChoosingContact = "choosing contact"  # noqa: N815
-    chatActionStartPlayingGame = "start playing game"  # noqa: N815
-    chatActionRecordingVideoNote = "recording video"  # noqa: N815
-    chatActionUploadingVideoNote = "uploading video"  # noqa: N815
+    chatActionTyping = "typing"
+    chatActionCancel = "cancel"
+    chatActionRecordingVideo = "recording video"
+    chatActionUploadingVideo = "uploading video"
+    chatActionRecordingVoiceNote = "recording voice"
+    chatActionUploadingVoiceNote = "uploading voice"
+    chatActionUploadingPhoto = "uploading photo"
+    chatActionUploadingDocument = "uploading document"
+    chatActionChoosingLocation = "choosing location"
+    chatActionChoosingContact = "choosing contact"
+    chatActionStartPlayingGame = "start playing game"
+    chatActionRecordingVideoNote = "recording video"
+    chatActionUploadingVideoNote = "uploading video"
 
 
 class ChatType(Enum):
-    chatTypePrivate = "private"  # noqa: N815
-    chatTypeBasicGroup = "group"  # noqa: N815
-    chatTypeSupergroup = "supergroup"  # noqa: N815
+    chatTypePrivate = "private"
+    chatTypeBasicGroup = "group"
+    chatTypeSupergroup = "supergroup"
     channel = "channel"
-    chatTypeSecret = "secret"  # noqa: N815
+    chatTypeSecret = "secret"
 
 
 class UserStatus(Enum):
-    userStatusEmpty = ""  # noqa: N815
-    userStatusOnline = "online"  # noqa: N815
-    userStatusOffline = "offline"  # noqa: N815
-    userStatusRecently = "recently"  # noqa: N815
-    userStatusLastWeek = "last week"  # noqa: N815
-    userStatusLastMonth = "last month"  # noqa: N815
+    userStatusEmpty = ""
+    userStatusOnline = "online"
+    userStatusOffline = "offline"
+    userStatusRecently = "recently"
+    userStatusLastWeek = "last week"
+    userStatusLastMonth = "last month"
 
 
 class UserType(Enum):
-    userTypeRegular = ""  # noqa: N815
-    userTypeDeleted = "deleted"  # noqa: N815
-    userTypeBot = "bot"  # noqa: N815
-    userTypeUnknown = "unknownn"  # noqa: N815
+    userTypeRegular = ""
+    userTypeDeleted = "deleted"
+    userTypeBot = "bot"
+    userTypeUnknown = "unknownn"
 
 
 class TextParseModeInput(Enum):
-    textParseModeMarkdown = "markdown"  # noqa: N815
-    textParseModeHTML = "html"  # noqa: N815
+    textParseModeMarkdown = "Markdown"
+    textParseModeHTML = "HTML"
 
 
 class SecretChatState(Enum):
-    secretChatStatePending = "pending"  # noqa: N815
-    secretChatStateReady = "ready"  # noqa: N815
-    secretChatStateClosed = "closed"  # noqa: N815
+    secretChatStatePending = "pending"
+    secretChatStateReady = "ready"
+    secretChatStateClosed = "closed"
 
 
 class Tdlib(Telegram):
@@ -98,7 +99,7 @@ class Tdlib(Telegram):
         offset: int = 0,
         limit: int = 0,
         synchronous: bool = False,
-    ) -> None:
+    ) -> AsyncResult:
         data = {
             "@type": "downloadFile",
             "file_id": file_id,
@@ -269,11 +270,11 @@ class Tdlib(Telegram):
         self,
         chat_id: int,
         from_chat_id: int,
-        message_ids: List[int],
+        message_ids: list[int],
         as_album: bool = False,
         send_copy: bool = False,
         remove_caption: bool = False,
-        options: Optional[Dict[str, Any]] = None,
+        options: Optional[dict[str, Any]] = None,
     ) -> AsyncResult:
         if options is None:
             options = {}
@@ -383,7 +384,7 @@ class Tdlib(Telegram):
         }
         return self._send_data(data)
 
-    def create_new_basic_group_chat(self, user_ids: List[int], title: str) -> AsyncResult:
+    def create_new_basic_group_chat(self, user_ids: list[int], title: str) -> AsyncResult:
         data = {
             "@type": "createNewBasicGroupChat",
             "user_ids": user_ids,
@@ -420,7 +421,7 @@ class Tdlib(Telegram):
         return self._send_data(data)
 
 
-def get_chat_type(chat: Dict[str, Any]) -> Optional[ChatType]:
+def get_chat_type(chat: dict[str, Any]) -> Optional[ChatType]:
     try:
         chat_type = ChatType[chat["type"]["@type"]]
         if chat_type == ChatType.chatTypeSupergroup and chat["type"]["is_channel"]:

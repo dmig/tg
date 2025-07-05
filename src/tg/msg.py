@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, ClassVar, Dict, List, Optional, Tuple
+from typing import Any, ClassVar, Optional
 
 from tg import utils
 
@@ -8,7 +8,7 @@ log = logging.getLogger(__name__)
 
 
 class MsgProxy:
-    fields_mapping: ClassVar[Dict[str, Tuple[str, ...]]] = {
+    fields_mapping: ClassVar[dict[str, tuple[str, ...]]] = {
         "messageDocument": ("document", "document"),
         "messageVoiceNote": ("voice_note", "voice"),
         "messageText": ("text", "text"),
@@ -21,7 +21,7 @@ class MsgProxy:
         "messageAnimation": ("animation", "animation"),
     }
 
-    types: ClassVar[Dict[str, str]] = {
+    types: ClassVar[dict[str, str]] = {
         "messageDocument": "document",
         "messageVoiceNote": "voice",
         "messageText": "text",
@@ -35,7 +35,7 @@ class MsgProxy:
     }
 
     @classmethod
-    def get_doc(cls, msg: Dict[str, Any], deep: int = 10) -> Dict[str, Any]:
+    def get_doc(cls, msg: dict[str, Any], deep: int = 10) -> dict[str, Any]:
         doc = msg["content"]
         _type = doc["@type"]
         fields = cls.fields_mapping.get(_type)
@@ -50,7 +50,7 @@ class MsgProxy:
                 return {}
         return doc
 
-    def __init__(self, msg: Dict[str, Any]) -> None:
+    def __init__(self, msg: dict[str, Any]) -> None:
         self.msg = msg
 
     def __getitem__(self, key: str) -> Any:
@@ -123,12 +123,12 @@ class MsgProxy:
         return doc["local"]["path"]
 
     @property
-    def local(self) -> Dict:
+    def local(self) -> dict:
         doc = self.get_doc(self.msg)
         return doc.get("local", {})
 
     @local.setter
-    def local(self, value: Dict) -> None:
+    def local(self, value: dict) -> None:
         if self.msg["content"]["@type"] is None:
             return
         doc = self.get_doc(self.msg)
@@ -149,7 +149,7 @@ class MsgProxy:
         return self.msg["content"]["poll"]["question"]
 
     @property
-    def poll_options(self) -> List[Dict]:
+    def poll_options(self) -> list[dict]:
         if not self.is_poll:
             raise ValueError("Poll is None")
         return self.msg["content"]["poll"]["options"]
@@ -204,11 +204,11 @@ class MsgProxy:
         return self.msg.get("reply_to_message_id")
 
     @property
-    def reply_markup(self) -> Optional[Dict[str, Any]]:
+    def reply_markup(self) -> dict[str, Any] | None:
         return self.msg.get("reply_markup")
 
     @property
-    def reply_markup_rows(self) -> List[List[Dict[str, Any]]]:
+    def reply_markup_rows(self) -> list[list[dict[str, Any]]]:
         if not self.reply_markup:
             raise ValueError("Reply markup is None")
         return self.reply_markup.get("rows", [])
@@ -222,7 +222,7 @@ class MsgProxy:
         return self.msg["sender_id"].get("user_id") or self.msg["sender_id"].get("chat_id")
 
     @property
-    def forward(self) -> Optional[Dict[str, Any]]:
+    def forward(self) -> dict[str, Any] | None:
         return self.msg.get("forward_info")
 
     @property

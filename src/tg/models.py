@@ -352,7 +352,7 @@ class Model:
         try:
             user_type = UserType[user["type"]["@type"]].value
         except KeyError:
-            log.error('Failed to get user info: %r', user)
+            log.error("Failed to get user info for %d: %r", user_id, user)
             user_type = "Unknown"
         return {
             name: status,
@@ -756,11 +756,13 @@ class UserModel:
         result = self.tg.get_user_full_info(user_id)
         result.wait()
         if result.error:
-            log.warning("get user full info error: id=%(id)d %(code)d %(message)s",
-                        {'id': user_id} | result.error_info)  # type:ignore
+            log.warning(
+                "get user full info error: id=%(id)d %(code)d %(message)s",
+                {"id": user_id} | result.error_info,  # type:ignore
+            )
             return {}
-        log.info('Retrieved full user info: %(id)d, %(first_name)s %(last_name)s', result.update)
-        log.debug('... data: %r', result.update)
+        log.info("Retrieved full user info: %(id)d, %(first_name)s %(last_name)s", result.update)
+        log.debug("... data: %r", result.update)
         user["full_info"] = result.update
         return result.update
 
@@ -772,12 +774,14 @@ class UserModel:
         result = self.tg.get_user(user_id)
         result.wait()
         if result.error:
-            log.warning("get user error: id=%(id)d %(code)d %(message)s",
-                        {'id': user_id} | result.error_info)  # type:ignore
+            log.warning(
+                "get user error: id=%(id)d %(code)d %(message)s",
+                {"id": user_id} | result.error_info,  # type:ignore
+            )
             self.not_found.add(user_id)
             return {}
-        log.info('Retrieved user info: %(id)d, %(first_name)s %(last_name)s', result.update)
-        log.debug('... data: %r', result.update)
+        log.info("Retrieved user info: %(id)d, %(first_name)s %(last_name)s", result.update)
+        log.debug("... data: %r", result.update)
         self.users[user_id] = result.update
         return result.update
 
