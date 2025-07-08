@@ -49,7 +49,7 @@ def get_mime(file_path: str) -> str:
     return mtype.split("/")[0]
 
 
-def get_mailcap() -> dict[str, list[mailcap._Cap]]:
+def get_mailcap() -> dict[str, list]:
     if config.MAILCAP_FILE:
         with open(config.MAILCAP_FILE) as f:
             return mailcap.readmailcapfile(f)  # type: ignore

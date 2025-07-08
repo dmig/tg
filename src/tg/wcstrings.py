@@ -12,15 +12,15 @@ def truncate_to_len(string: str, width: int) -> str:
         return string
 
     cur_len = 0
-    out_string: list[str] = []
 
-    for char in string:
+    for ix, char in enumerate(string):  # noqa: B007
         # avoid decreasing string length with indeterminate character
         cur_len += max(wcwidth(char), 0)
-        out_string += char
         if cur_len >= width:
             break
-    return "".join(out_string)
+    else:
+        return string
+    return string[:ix + 1]
 
 
 def wcs_center(text: str, width: int, padding: str = " ") -> str:
